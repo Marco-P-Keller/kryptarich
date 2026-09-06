@@ -1,5 +1,5 @@
 abstract final class AppConstants {
-  static const String appName = 'Krypta ECC';
+  static const String appName = 'Krypta Chat';
 
   /// Marketing-Version und Build-Nummer, vom Build durchgereicht.
   ///

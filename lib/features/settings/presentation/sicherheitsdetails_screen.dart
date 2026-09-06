@@ -3,7 +3,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_spacing.dart';
 
-/// Die ausfuehrliche Sicherheitsansicht, erreichbar aus „Ueber Krypta ECC".
+/// Die ausfuehrliche Sicherheitsansicht, erreichbar aus „Ueber Krypta Chat".
 ///
 /// Angelegt am 02.09.2026 auf Daniels Wunsch. Die Ueber-Ansicht selbst bleibt
 /// knapp; wer es genauer wissen will, tippt hier hinein.

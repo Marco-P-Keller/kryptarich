@@ -1,7 +1,7 @@
 /* Springboard / app switcher / Settings.app name. Deliberately the product
    name, not a cover name (decided 2026-08-24) — see Info.plist. */
-"CFBundleDisplayName" = "Krypta ECC";
-"CFBundleName" = "Krypta ECC";
+"CFBundleDisplayName" = "Krypta Chat";
+"CFBundleName" = "Krypta Chat";
 
 /* Purpose strings, localized so iOS never falls back to the base plist. */
 "NSFaceIDUsageDescription" = "Face ID unlocks the app without typing your passcode.";

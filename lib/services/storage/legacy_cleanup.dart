@@ -21,8 +21,9 @@ enum LegacyCleanupOutcome {
 /// Krypta hatte einmal einen zweiten, falschen Messenger: ein eigener Code im
 /// Rechner öffnete eine harmlos aussehende Chat-App, vorbefüllt mit erfundenen
 /// Nachrichten. Das gehörte zum alten Tarn-Konzept, das mit der Entscheidung
-/// vom 24.08.2026 weggefallen ist — die App heißt wieder Krypta ECC, und der
-/// Rechner ist eine Zugangssperre, keine Verkleidung.
+/// vom 24.08.2026 weggefallen ist — die App trägt seither wieder ihren
+/// Produktnamen (heute „Krypta Chat"), und der Rechner ist eine
+/// Zugangssperre, keine Verkleidung.
 ///
 /// Den Code zu löschen räumt auf bestehenden Geräten aber nichts weg. Dort
 /// liegen weiter `decoy_chats` mit den erfundenen Chats und im Schlüsselbund

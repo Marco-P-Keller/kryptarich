@@ -9,7 +9,7 @@ class AppLocalizationsIt extends AppLocalizations {
   AppLocalizationsIt([String locale = 'it']) : super(locale);
 
   @override
-  String get appName => 'Krypta ECC';
+  String get appName => 'Krypta Chat';
 
   @override
   String get calculator => 'Calcolatrice';
@@ -27,7 +27,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get contacts => 'Contatti';
 
   @override
-  String get setupTitle => 'Benvenuto in Krypta ECC';
+  String get setupTitle => 'Benvenuto in Krypta Chat';
 
   @override
   String get setupSubtitle => 'Imposta i tuoi codici segreti per iniziare';
@@ -149,7 +149,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get deleteAccount => 'Elimina account e dati';
 
   @override
-  String get about => 'Informazioni su Krypta ECC';
+  String get about => 'Informazioni su Krypta Chat';
 
   @override
   String version(String version) {
@@ -629,7 +629,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get privacyPolicyBody =>
-      'Krypta ECC — Informativa sulla privacy\n\nUltimo aggiornamento: aprile 2026\n\n1. Titolare del trattamento\nConnexa GmbH\nContatto: https://connexa-gmbh.ch\n\n2. Quali dati vengono raccolti?\nKrypta raccoglie il minor numero di dati tecnicamente possibile:\n• ID Firebase anonimo (nessuna e-mail, nessun nome, nessun numero di telefono)\n• Chiave pubblica di cifratura (X25519)\n• Token push FCM (per le notifiche)\n\n3. Cifratura\nTutti i messaggi sono cifrati end-to-end (protocollo Signal: X3DH + Double Ratchet). In nessun momento il server ha accesso al testo in chiaro dei tuoi messaggi. Cifratura: XChaCha20-Poly1305. Hashing delle password: Argon2id.\n\n4. Conservazione dei dati\n• I messaggi sono conservati solo sul tuo dispositivo (cifrati)\n• Il server funge solo da relè temporaneo: i messaggi vengono eliminati dopo la consegna\n• Le chiavi sono conservate nel Portachiavi iOS / Android Keystore\n\n5. Nessun tracciatore\nKrypta non contiene strumenti di analisi, pubblicità o tracciatori (0 su 432 tracciatori noti).\n\n6. Comunicazione dei dati\nNessun dato personale viene comunicato a terzi. Google Firebase è utilizzato come fornitore di infrastruttura (autenticazione anonima e notifiche push).\n\n7. Cancellazione dei dati\nPuoi cancellare in modo irreversibile tutti i tuoi dati in qualsiasi momento:\n• Nelle impostazioni, tramite «Cancella tutto»\n• Inserendo il codice di cancellazione nella calcolatrice\nQuesto distrugge tutti i dati locali, le chiavi e i dati sul server.\n\n8. I tuoi diritti (GDPR)\nHai diritto di accesso, rettifica, cancellazione e portabilità dei dati. Contattaci all’indirizzo: https://connexa-gmbh.ch\n\n9. Modifiche\nLa presente informativa può essere aggiornata. La versione in vigore è sempre consultabile nell’app.';
+      'Krypta Chat — Informativa sulla privacy\n\nUltimo aggiornamento: aprile 2026\n\n1. Titolare del trattamento\nConnexa GmbH\nContatto: https://connexa-gmbh.ch\n\n2. Quali dati vengono raccolti?\nKrypta raccoglie il minor numero di dati tecnicamente possibile:\n• ID Firebase anonimo (nessuna e-mail, nessun nome, nessun numero di telefono)\n• Chiave pubblica di cifratura (X25519)\n• Token push FCM (per le notifiche)\n\n3. Cifratura\nTutti i messaggi sono cifrati end-to-end (protocollo Signal: X3DH + Double Ratchet). In nessun momento il server ha accesso al testo in chiaro dei tuoi messaggi. Cifratura: XChaCha20-Poly1305. Hashing delle password: Argon2id.\n\n4. Conservazione dei dati\n• I messaggi sono conservati solo sul tuo dispositivo (cifrati)\n• Il server funge solo da relè temporaneo: i messaggi vengono eliminati dopo la consegna\n• Le chiavi sono conservate nel Portachiavi iOS / Android Keystore\n\n5. Nessun tracciatore\nKrypta non contiene strumenti di analisi, pubblicità o tracciatori (0 su 432 tracciatori noti).\n\n6. Comunicazione dei dati\nNessun dato personale viene comunicato a terzi. Google Firebase è utilizzato come fornitore di infrastruttura (autenticazione anonima e notifiche push).\n\n7. Cancellazione dei dati\nPuoi cancellare in modo irreversibile tutti i tuoi dati in qualsiasi momento:\n• Nelle impostazioni, tramite «Cancella tutto»\n• Inserendo il codice di cancellazione nella calcolatrice\nQuesto distrugge tutti i dati locali, le chiavi e i dati sul server.\n\n8. I tuoi diritti (GDPR)\nHai diritto di accesso, rettifica, cancellazione e portabilità dei dati. Contattaci all’indirizzo: https://connexa-gmbh.ch\n\n9. Modifiche\nLa presente informativa può essere aggiornata. La versione in vigore è sempre consultabile nell’app.';
 
   @override
   String get tutStartSetup => 'Avvia la configurazione';

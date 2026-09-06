@@ -1,5 +1,5 @@
 /**
- * Krypta ECC - Firebase Cloud Functions
+ * Krypta Chat - Firebase Cloud Functions
  *
  * These functions handle server-side message lifecycle:
  * 1. Push notification triggers - notify recipient of new messages
@@ -34,16 +34,16 @@ const db = admin.firestore();
 /**
  * Wording of the push alert that lands on the lock screen.
  *
- * iOS renders it under the app name, which since d62998f is "Krypta ECC" and
- * no longer a calculator alias:
+ * iOS renders it under the app name, which since d62998f is the product name
+ * and no longer a calculator alias — today "Krypta Chat":
  *
- *     KRYPTA ECC
+ *     KRYPTA CHAT
  *     Du hast eine neue Nachricht erhalten
  *
  * Daniel asked for this wording, replacing the neutral "Tippen zum Oeffnen".
  * What it gives up: a glance at the lock screen now reveals THAT something
  * arrived, not merely that the app wants attention. Under a display name
- * already reading "Krypta ECC" that is a small step. On Android the label is
+ * already reading "Krypta Chat" that is a small step. On Android the label is
  * still "Calc", so there it costs more.
  *
  * Never a sender, never content, never a preview. Those would have to travel

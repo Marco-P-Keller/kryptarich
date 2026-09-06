@@ -303,9 +303,10 @@ werden, sobald der Actions-Workflow einmal erfolgreich durchgelaufen ist.
 `CFBundleDisplayName` und `CFBundleName` sind das, was auf dem Home-Screen, im
 App-Switcher, in den Einstellungen und im Teilen-Menü steht.
 
-**Stand 2026-08-24: bewusst der Produktname „Krypta ECC", kein Tarn-Name.**
+**Stand 2026-08-24: bewusst der Produktname, kein Tarn-Name.** Seit dem
+2026-09-06 lautet er **„Krypta Chat"** (vorher „Krypta ECC").
 Entschieden von Daniel. Begründung: Die App ist im App Store ohnehin öffentlich
-als *Krypta ECC* gelistet — ein Rechner-Name auf dem Home-Screen hätte also nur
+unter ihrem Produktnamen gelistet — ein Rechner-Name auf dem Home-Screen hätte also nur
 eine halbe Tarnung gebracht, dafür aber bestehende Kunden verwirrt, die ihre App
 wiedererkennen wollen. Der Taschenrechner vor der Code-Eingabe bleibt, ist damit
 aber eine Zugangssperre und keine Tarnung.
@@ -338,13 +339,13 @@ python3 scripts/asc_app_state.py check-names
 Das sammelt **alle** Namen, unter denen die App erscheinen kann — die
 Basis-`Info.plist` und jede `*.lproj/InfoPlist.strings` — und fragt den
 öffentlichen App-Store-Katalog nach exakten Treffern. Der **eigene**
-App-Store-Name gilt nicht als Konflikt; deshalb geht „Krypta ECC" durch, obwohl
+App-Store-Name gilt nicht als Konflikt; deshalb geht „Krypta Chat" durch, obwohl
 der Katalog dafür einen Treffer liefert (Connexa GmbH, also wir).
 
 Einen Namen vorab prüfen, ohne etwas zu ändern:
 
 ```bash
-python3 scripts/asc_app_state.py check-names --own-name "Krypta ECC"   --info-plist ios/Runner/Info.plist --lproj-dir ios/Runner
+python3 scripts/asc_app_state.py check-names --own-name "Krypta Chat"   --info-plist ios/Runner/Info.plist --lproj-dir ios/Runner
 ```
 
 **Grenze der Prüfung:** Der Katalog kennt nur *veröffentlichte* Apps. Ein

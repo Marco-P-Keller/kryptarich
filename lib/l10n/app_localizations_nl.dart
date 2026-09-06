@@ -9,7 +9,7 @@ class AppLocalizationsNl extends AppLocalizations {
   AppLocalizationsNl([String locale = 'nl']) : super(locale);
 
   @override
-  String get appName => 'Krypta ECC';
+  String get appName => 'Krypta Chat';
 
   @override
   String get calculator => 'Rekenmachine';
@@ -27,7 +27,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get contacts => 'Contacten';
 
   @override
-  String get setupTitle => 'Welkom bij Krypta ECC';
+  String get setupTitle => 'Welkom bij Krypta Chat';
 
   @override
   String get setupSubtitle => 'Stel je geheime codes in om te beginnen';
@@ -147,7 +147,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get deleteAccount => 'Account en gegevens verwijderen';
 
   @override
-  String get about => 'Over Krypta ECC';
+  String get about => 'Over Krypta Chat';
 
   @override
   String version(String version) {
@@ -625,7 +625,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get privacyPolicyBody =>
-      'Krypta ECC — Privacyverklaring\n\nLaatst bijgewerkt: april 2026\n\n1. Verwerkingsverantwoordelijke\nConnexa GmbH\nContact: https://connexa-gmbh.ch\n\n2. Welke gegevens worden verzameld?\nKrypta verzamelt zo weinig gegevens als technisch mogelijk is:\n• Anoniem Firebase-ID (geen e-mailadres, geen naam, geen telefoonnummer)\n• Openbare versleutelingssleutel (X25519)\n• FCM-pushtoken (voor meldingen)\n\n3. Versleuteling\nAlle berichten zijn end-to-end versleuteld (Signal-protocol: X3DH + Double Ratchet). De server heeft op geen enkel moment toegang tot de leesbare tekst van je berichten. Versleuteling: XChaCha20-Poly1305. Wachtwoord-hashing: Argon2id.\n\n4. Gegevensopslag\n• Berichten worden alleen op je eigen apparaat bewaard (versleuteld)\n• De server dient uitsluitend als tijdelijke doorgeefluik — berichten worden na bezorging verwijderd\n• Sleutels worden bewaard in de iOS-sleutelhanger / Android Keystore\n\n5. Geen trackers\nKrypta bevat geen analysetools, geen advertenties en geen trackers (0 van 432 bekende trackers).\n\n6. Doorgifte van gegevens\nEr worden geen persoonsgegevens aan derden doorgegeven. Google Firebase wordt gebruikt als infrastructuuraanbieder (anonieme authenticatie en pushmeldingen).\n\n7. Gegevens wissen\nJe kunt al je gegevens op elk moment onherroepelijk wissen:\n• In de instellingen via «Alles wissen»\n• Door de wiscode in de rekenmachine in te voeren\nDaarmee worden alle lokale gegevens, sleutels en servergegevens vernietigd.\n\n8. Jouw rechten (AVG)\nJe hebt recht op inzage, rectificatie, wissing en overdraagbaarheid van gegevens. Neem contact met ons op via: https://connexa-gmbh.ch\n\n9. Wijzigingen\nDeze privacyverklaring kan worden bijgewerkt. De geldende versie is altijd in de app te raadplegen.';
+      'Krypta Chat — Privacyverklaring\n\nLaatst bijgewerkt: april 2026\n\n1. Verwerkingsverantwoordelijke\nConnexa GmbH\nContact: https://connexa-gmbh.ch\n\n2. Welke gegevens worden verzameld?\nKrypta verzamelt zo weinig gegevens als technisch mogelijk is:\n• Anoniem Firebase-ID (geen e-mailadres, geen naam, geen telefoonnummer)\n• Openbare versleutelingssleutel (X25519)\n• FCM-pushtoken (voor meldingen)\n\n3. Versleuteling\nAlle berichten zijn end-to-end versleuteld (Signal-protocol: X3DH + Double Ratchet). De server heeft op geen enkel moment toegang tot de leesbare tekst van je berichten. Versleuteling: XChaCha20-Poly1305. Wachtwoord-hashing: Argon2id.\n\n4. Gegevensopslag\n• Berichten worden alleen op je eigen apparaat bewaard (versleuteld)\n• De server dient uitsluitend als tijdelijke doorgeefluik — berichten worden na bezorging verwijderd\n• Sleutels worden bewaard in de iOS-sleutelhanger / Android Keystore\n\n5. Geen trackers\nKrypta bevat geen analysetools, geen advertenties en geen trackers (0 van 432 bekende trackers).\n\n6. Doorgifte van gegevens\nEr worden geen persoonsgegevens aan derden doorgegeven. Google Firebase wordt gebruikt als infrastructuuraanbieder (anonieme authenticatie en pushmeldingen).\n\n7. Gegevens wissen\nJe kunt al je gegevens op elk moment onherroepelijk wissen:\n• In de instellingen via «Alles wissen»\n• Door de wiscode in de rekenmachine in te voeren\nDaarmee worden alle lokale gegevens, sleutels en servergegevens vernietigd.\n\n8. Jouw rechten (AVG)\nJe hebt recht op inzage, rectificatie, wissing en overdraagbaarheid van gegevens. Neem contact met ons op via: https://connexa-gmbh.ch\n\n9. Wijzigingen\nDeze privacyverklaring kan worden bijgewerkt. De geldende versie is altijd in de app te raadplegen.';
 
   @override
   String get tutStartSetup => 'Instellen starten';

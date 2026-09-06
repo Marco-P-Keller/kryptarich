@@ -1,11 +1,11 @@
-# Krypta ECC — Security Architecture
+# Krypta Chat — Security Architecture
 
 **Version:** 2.0 (post-hardening)
 **Last Updated:** 2026-04-21
 
 ## Overview
 
-Krypta ECC is a high-security messenger disguised as a fully functional calculator.
+Krypta Chat is a high-security messenger disguised as a fully functional calculator.
 Security and user privacy are the primary design goals. The system implements the
 Signal Protocol (X3DH + Double Ratchet) with additional hardening measures.
 

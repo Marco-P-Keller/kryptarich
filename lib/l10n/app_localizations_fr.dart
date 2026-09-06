@@ -9,7 +9,7 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
-  String get appName => 'Krypta ECC';
+  String get appName => 'Krypta Chat';
 
   @override
   String get calculator => 'Calculatrice';
@@ -27,7 +27,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get contacts => 'Contacts';
 
   @override
-  String get setupTitle => 'Bienvenue dans Krypta ECC';
+  String get setupTitle => 'Bienvenue dans Krypta Chat';
 
   @override
   String get setupSubtitle => 'Configurez vos codes secrets pour commencer';
@@ -149,7 +149,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get deleteAccount => 'Supprimer le compte et les données';
 
   @override
-  String get about => 'À propos de Krypta ECC';
+  String get about => 'À propos de Krypta Chat';
 
   @override
   String version(String version) {
@@ -628,7 +628,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get privacyPolicyBody =>
-      'Krypta ECC — Politique de confidentialité\n\nDernière mise à jour : avril 2026\n\n1. Responsable du traitement\nConnexa GmbH\nContact : https://connexa-gmbh.ch\n\n2. Quelles données sont collectées ?\nKrypta collecte aussi peu de données que techniquement possible :\n• Identifiant Firebase anonyme (pas d’e-mail, pas de nom, pas de numéro de téléphone)\n• Clé publique de chiffrement (X25519)\n• Jeton push FCM (pour les notifications)\n\n3. Chiffrement\nTous les messages sont chiffrés de bout en bout (protocole Signal : X3DH + Double Ratchet). À aucun moment le serveur n’a accès au texte en clair de vos messages. Chiffrement : XChaCha20-Poly1305. Hachage des mots de passe : Argon2id.\n\n4. Conservation des données\n• Les messages sont conservés uniquement sur votre appareil (chiffrés)\n• Le serveur ne sert que de relais temporaire — les messages sont supprimés après remise\n• Les clés sont conservées dans le trousseau iOS / Android Keystore\n\n5. Aucun traceur\nKrypta ne contient aucun outil d’analyse, aucune publicité et aucun traceur (0 sur 432 traceurs connus).\n\n6. Transmission des données\nAucune donnée personnelle n’est transmise à des tiers. Google Firebase est utilisé comme fournisseur d’infrastructure (authentification anonyme et notifications push).\n\n7. Suppression des données\nVous pouvez supprimer irréversiblement toutes vos données à tout moment :\n• Dans les réglages, via « Tout supprimer »\n• En saisissant le code d’effacement dans la calculatrice\nCela détruit toutes les données locales, les clés et les données côté serveur.\n\n8. Vos droits (RGPD)\nVous disposez d’un droit d’accès, de rectification, d’effacement et de portabilité des données. Contactez-nous à : https://connexa-gmbh.ch\n\n9. Modifications\nCette politique de confidentialité peut être mise à jour. La version en vigueur est toujours consultable dans l’application.';
+      'Krypta Chat — Politique de confidentialité\n\nDernière mise à jour : avril 2026\n\n1. Responsable du traitement\nConnexa GmbH\nContact : https://connexa-gmbh.ch\n\n2. Quelles données sont collectées ?\nKrypta collecte aussi peu de données que techniquement possible :\n• Identifiant Firebase anonyme (pas d’e-mail, pas de nom, pas de numéro de téléphone)\n• Clé publique de chiffrement (X25519)\n• Jeton push FCM (pour les notifications)\n\n3. Chiffrement\nTous les messages sont chiffrés de bout en bout (protocole Signal : X3DH + Double Ratchet). À aucun moment le serveur n’a accès au texte en clair de vos messages. Chiffrement : XChaCha20-Poly1305. Hachage des mots de passe : Argon2id.\n\n4. Conservation des données\n• Les messages sont conservés uniquement sur votre appareil (chiffrés)\n• Le serveur ne sert que de relais temporaire — les messages sont supprimés après remise\n• Les clés sont conservées dans le trousseau iOS / Android Keystore\n\n5. Aucun traceur\nKrypta ne contient aucun outil d’analyse, aucune publicité et aucun traceur (0 sur 432 traceurs connus).\n\n6. Transmission des données\nAucune donnée personnelle n’est transmise à des tiers. Google Firebase est utilisé comme fournisseur d’infrastructure (authentification anonyme et notifications push).\n\n7. Suppression des données\nVous pouvez supprimer irréversiblement toutes vos données à tout moment :\n• Dans les réglages, via « Tout supprimer »\n• En saisissant le code d’effacement dans la calculatrice\nCela détruit toutes les données locales, les clés et les données côté serveur.\n\n8. Vos droits (RGPD)\nVous disposez d’un droit d’accès, de rectification, d’effacement et de portabilité des données. Contactez-nous à : https://connexa-gmbh.ch\n\n9. Modifications\nCette politique de confidentialité peut être mise à jour. La version en vigueur est toujours consultable dans l’application.';
 
   @override
   String get tutStartSetup => 'Démarrer la configuration';

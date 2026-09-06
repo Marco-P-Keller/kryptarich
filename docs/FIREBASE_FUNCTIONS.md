@@ -65,7 +65,7 @@ Zeile wäre nur weitere Fläche.
 **Was der neue Text preisgibt.** Ein Blick auf den Sperrbildschirm verrät
 jetzt, **dass** etwas angekommen ist, nicht mehr nur, dass die App
 Aufmerksamkeit will. Unter einem Anzeigenamen, der seit `d62998f` ohnehin
-„Krypta ECC" lautet, ist das ein kleiner Schritt — die Begründung von 2026-08-23
+„Krypta Chat" lautet, ist das ein kleiner Schritt — die Begründung von 2026-08-23
 oben stand auf der Annahme eines Rechner-Namens, und die gilt für iOS nicht
 mehr. Auf **Android** heißt die App weiterhin „Calc"; dort kostet der Satz
 mehr, und falls Android je ausgeliefert wird, gehört das noch einmal

@@ -1,11 +1,11 @@
-# Krypta ECC — Encryption Documentation
+# Krypta Chat — Encryption Documentation
 
 Prepared for Apple's *App Encryption Documentation* upload in App Store Connect
 and as the technical basis for a U.S. export self-classification.
 
 | | |
 |---|---|
-| **App name** | Krypta ECC |
+| **App name** | Krypta Chat |
 | **Bundle identifier** | `com.calcchat.ww` |
 | **Apple Team ID** | `B97SQSQBMR` |
 | **Version** | 4.2.0 (build 101) |
@@ -16,7 +16,7 @@ and as the technical basis for a U.S. export self-classification.
 
 ## 1. Summary
 
-Krypta ECC is a one-to-one messenger. Its purpose is end-to-end encrypted
+Krypta Chat is a one-to-one messenger. Its purpose is end-to-end encrypted
 messaging: messages are encrypted on the sending device and can only be
 decrypted on the receiving device. The relay server stores ciphertext only and
 holds no key material.

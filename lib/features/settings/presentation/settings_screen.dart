@@ -897,7 +897,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: l10n.openSourceLicensesSubtitle,
               onTap: () => showLicensePage(
                 context: context,
-                applicationName: 'Krypta ECC',
+                applicationName: 'Krypta Chat',
                 applicationVersion: AppConstants.appVersion,
               ),
             ),

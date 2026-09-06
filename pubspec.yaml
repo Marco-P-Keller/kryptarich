@@ -1,5 +1,5 @@
 ﻿name: kryptaapp
-description: "Krypta ECC – Secure encrypted messenger"
+description: "Krypta Chat – Secure encrypted messenger"
 publish_to: 'none'
 # 4.2.0, nicht 4.1.1: mit der Sprachauswahl, den Kontaktanfragen und dem
 # Aufnahmeschutz kommt echte neue Funktionalitaet dazu, keine Fehlerbehebung.

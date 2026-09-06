@@ -29,7 +29,7 @@ actual review build/device.
 
 KRYPTA — Notes for App Review
 
-In-app product name (shown after unlock, in Settings/About): "Krypta ECC".
+In-app product name (shown after unlock, in Settings/About): "Krypta Chat".
 On-device cover identity shown on the Home Screen, in the App Switcher, and in
 Settings.app: "Calc" / "Rechner" (German).
 
@@ -50,7 +50,7 @@ HOW TO REACH THE MESSENGER
 2. Type this exact code, then press "=": [ENTER THE CODE YOU CONFIGURED FOR
    THIS REVIEW BUILD, e.g. 1234=]
 3. The screen replaces itself with the real encrypted messenger (chat list,
-   Settings, etc.). Inside, it identifies itself as "Krypta ECC" in
+   Settings, etc.). Inside, it identifies itself as "Krypta Chat" in
    Settings/About — that is expected and correct, not a mismatch.
 [MARCO: if Face ID/Touch ID or a second "vault password" screen appears
 between steps 2 and 3, add one sentence here describing exactly what the

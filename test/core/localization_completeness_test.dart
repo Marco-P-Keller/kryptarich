@@ -104,9 +104,9 @@ void main() {
       });
 
       test('der Produktname bleibt unübersetzt', () {
-        // „Krypta ECC" ist der Name im App Store. Wird der übersetzt, sucht
+        // „Krypta Chat" ist der Name im App Store. Wird der übersetzt, sucht
         // jemand die App unter einem Namen, den es dort nicht gibt.
-        expect(readArb(code)['appName'], 'Krypta ECC');
+        expect(readArb(code)['appName'], 'Krypta Chat');
       });
     });
   }

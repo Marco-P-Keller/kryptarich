@@ -96,7 +96,7 @@ geändert hat. Er hat nur Workflows, Docs, eine Zeile in
 Datei, die ich bearbeitet habe.
 
 Sichtbare Änderungen, die du vor dem Commit anschauen solltest:
-- Home-Screen-Name ist **Calc** / **Rechner** statt „Krypta ECC"
+- Home-Screen-Name ist **Calc** / **Rechner** statt „Krypta Chat"
 - Send-Button, Stift-Icon und Timer-„×" haben größere Tap-Flächen
 - Taschenrechner-Tasten skalieren Text bei großen Schriftgrößen herunter
 
@@ -138,7 +138,7 @@ Reihenfolge wichtig, Punkt 2 ist der, an dem Build 68 gescheitert ist:
 2. **UI-Position:** starten, drehen hoch → quer → hoch, App wechseln und
    zurück. *Bei Build 68 war die ganze UI nach unten/rechts verschoben.*
 3. **Name:** Home-Screen, App-Switcher, Einstellungen zeigen **Calc** /
-   **Rechner**. Steht dort „Krypta ECC", ist die Tarnung kaputt.
+   **Rechner**. Steht dort „Krypta Chat", ist die Tarnung kaputt.
 4. **Blackview:** fünfmal in den Hintergrund und zurück, einmal davon über
    Siri oder ein Anruf-Banner. Die App darf **nie** schwarz zurückkommen.
 5. **Screenshot** im Chat ist schwarz. Zeigt er echten Inhalt, hat der
