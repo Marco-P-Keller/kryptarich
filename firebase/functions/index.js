@@ -43,8 +43,8 @@ const db = admin.firestore();
  * Daniel asked for this wording, replacing the neutral "Tippen zum Oeffnen".
  * What it gives up: a glance at the lock screen now reveals THAT something
  * arrived, not merely that the app wants attention. Under a display name
- * already reading "Krypta Chat" that is a small step. On Android the label is
- * still "Calc", so there it costs more.
+ * already reading "Krypta Chat" that is a small step. Since 2026-09-06 the
+ * Android launcher carries the same name, so both platforms cost the same.
  *
  * Never a sender, never content, never a preview. Those would have to travel
  * through FCM, which Google logs.

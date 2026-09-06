@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Launcher / recents / app info name. Must stay the cover identity —
-         the product name is only shown inside the app after unlock. -->
-    <string name="app_name">Calc</string>
+    <!-- Launcher / recents / app info name.
+         Since 2026-09-06 the product name, matching iOS. Before that it was
+         the cover identity ("Calc" / "Rechner"), on the assumption that the
+         home screen should not name the app. Daniel dropped that: the icon
+         says KRYPTA, so a calculator name beside it fooled nobody. The
+         calculator on start remains — as an access lock, not a disguise. -->
+    <string name="app_name">Krypta Chat</string>
 </resources>

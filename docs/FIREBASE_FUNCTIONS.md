@@ -67,9 +67,8 @@ jetzt, **dass** etwas angekommen ist, nicht mehr nur, dass die App
 Aufmerksamkeit will. Unter einem Anzeigenamen, der seit `d62998f` ohnehin
 „Krypta Chat" lautet, ist das ein kleiner Schritt — die Begründung von 2026-08-23
 oben stand auf der Annahme eines Rechner-Namens, und die gilt für iOS nicht
-mehr. Auf **Android** heißt die App weiterhin „Calc"; dort kostet der Satz
-mehr, und falls Android je ausgeliefert wird, gehört das noch einmal
-abgewogen. Absender, Inhalt und Vorschau bleiben draußen — die müssten durch
+mehr. Seit dem 06.09.2026 gilt dasselbe für **Android**: der Starter trägt
+dort ebenfalls „Krypta Chat", die Tarnidentität ist auch dort weggefallen. Absender, Inhalt und Vorschau bleiben draußen — die müssten durch
 FCM, und das protokolliert Google.
 
 **Ein Text für beide Fälle, und der Server kann es nicht besser.** Daniel

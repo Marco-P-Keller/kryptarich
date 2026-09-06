@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Launcher / Zuletzt verwendet / App-Info. Muss die Tarnung halten —
-         der Produktname erscheint nur in der App nach dem Entsperren. -->
-    <string name="app_name">Rechner</string>
+    <!-- Launcher / Zuletzt verwendet / App-Info.
+         Seit dem 06.09.2026 der Produktname, wie auf iOS. Vorher stand hier
+         die Tarnidentität „Rechner". Daniels Entscheidung: das Icon schreibt
+         KRYPTA daneben, ein Rechner-Name hätte niemanden getäuscht. Der
+         Taschenrechner beim Start bleibt — als Zugangssperre, nicht als
+         Verkleidung. Produktnamen werden nicht übersetzt. -->
+    <string name="app_name">Krypta Chat</string>
 </resources>

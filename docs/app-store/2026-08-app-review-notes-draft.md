@@ -30,8 +30,9 @@ actual review build/device.
 KRYPTA — Notes for App Review
 
 In-app product name (shown after unlock, in Settings/About): "Krypta Chat".
-On-device cover identity shown on the Home Screen, in the App Switcher, and in
-Settings.app: "Calc" / "Rechner" (German).
+The same name is shown on the Home Screen, in the App Switcher and in
+Settings.app, on both iOS and Android. The app does not hide its identity
+under a different name.
 
 This is a privacy- and security-focused end-to-end encrypted messenger
 (Signal-protocol-style E2EE), in the same general category as apps like
