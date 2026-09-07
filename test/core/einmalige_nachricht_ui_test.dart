@@ -20,7 +20,9 @@ void main() {
       );
 
   Future<void> zeige(WidgetTester t, Message m,
-          {required bool isMine, String? eigeneId = 'ich'}) =>
+          {required bool isMine,
+          String? eigeneId = 'ich',
+          bool torBesetzt = false}) =>
       t.pumpWidget(MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -30,7 +32,10 @@ void main() {
             message: m,
             isMine: isMine,
             eigeneId: eigeneId,
-            onOeffnen: () {},
+            // Kein Aufrufer heisst: das Tor ist gerade besetzt, ein
+            // Durchlauf laeuft. Die Blase zeigt die Schaltflaeche dann
+            // gesperrt, statt einen zweiten zu starten.
+            onOeffnen: torBesetzt ? null : () {},
           ),
         ),
       ));
@@ -44,6 +49,20 @@ void main() {
         findsNothing,
         reason: 'der Inhalt darf vor dem Bestaetigen nirgends stehen');
     expect(find.text('Öffnen'), findsOneWidget);
+  });
+
+  testWidgets('waehrend ein Durchlauf laeuft, ist die Schaltflaeche gesperrt',
+      (t) async {
+    // Der zweite schnelle Tipp landet sonst auf einem noch scharfen Knopf
+    // und startet eine zweite Rueckfrage. Der Aufrufer nimmt der Blase den
+    // Aufrufer weg, solange er arbeitet; hier steht, dass sie das auch
+    // zeigt.
+    await zeige(t, nachricht(von: 'marco'), isMine: false, torBesetzt: true);
+    final knopf = t.widget<FilledButton>(
+        find.ancestor(of: find.text('Öffnen'), matching: find.byType(FilledButton)));
+    expect(knopf.enabled, isFalse);
+    expect(find.textContaining('GEHEIMER TEXT', findRichText: true),
+        findsNothing);
   });
 
   testWidgets('beim Absender steht nur, dass er sie geschickt hat', (t) async {

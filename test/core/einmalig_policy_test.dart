@@ -175,4 +175,34 @@ void main() {
       );
     });
   });
+
+  group('EinmaligeOeffnung', () {
+    // Das Tor darf nur einmal aufgehen — auch dann, wenn zweimal schnell
+    // getippt wird. Bis zum 07.09.2026 startete jeder Tipp einen eigenen
+    // Durchlauf: zwei Rueckfragen uebereinander, und wer die zweite
+    // bestaetigte, bekam nichts, ohne zu wissen warum.
+    test('der erste Tipp bekommt das Tor, der zweite nicht', () {
+      final tor = EinmaligeOeffnung();
+      expect(tor.beginne('m1'), isTrue);
+      expect(tor.laeuft('m1'), isTrue);
+      expect(tor.beginne('m1'), isFalse,
+          reason: 'solange der erste Durchlauf laeuft, ist das Tor besetzt');
+    });
+
+    test('nach dem Ende ist das Tor wieder frei', () {
+      // Wer abbricht, darf spaeter erneut oeffnen — siehe die Spec.
+      final tor = EinmaligeOeffnung();
+      tor.beginne('m1');
+      tor.beende('m1');
+      expect(tor.laeuft('m1'), isFalse);
+      expect(tor.beginne('m1'), isTrue);
+    });
+
+    test('jede Nachricht hat ihr eigenes Tor', () {
+      final tor = EinmaligeOeffnung();
+      tor.beginne('m1');
+      expect(tor.laeuft('m2'), isFalse);
+      expect(tor.beginne('m2'), isTrue);
+    });
+  });
 }

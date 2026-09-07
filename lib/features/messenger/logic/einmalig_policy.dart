@@ -105,3 +105,32 @@ abstract final class EinmaligPolicy {
   static bool ausPayload(Map<String, dynamic> payload) =>
       payload[feldName] == true || payload[feldName] == 'true';
 }
+
+/// Das Tor einer einmaligen Nachricht — je Nachricht nur ein Durchlauf.
+///
+/// Das Oeffnen ist ein Weg mit Wartezeiten: Rueckfrage, Verbrauchen,
+/// Ansicht. Bis zum 07.09.2026 startete jeder Tipp auf die Schaltflaeche
+/// einen eigenen Durchlauf. Zwei schnelle Tipps hiessen zwei Rueckfragen
+/// uebereinander; wer nach der Ansicht auch die zweite bestaetigte, bekam
+/// nichts, denn verbraucht war laengst — nur sagte ihm das niemand.
+///
+/// Verbraucht wird trotzdem nur einmal, das stellt der Provider sicher:
+/// er nimmt die Nachricht aus der Liste, bevor er das erste Mal wartet.
+/// Dieses Tor sorgt dafuer, dass der zweite Tipp gar nicht erst zu einer
+/// Rueckfrage wird, und dass die Schaltflaeche solange gesperrt aussieht.
+///
+/// Absichtlich nur der Zustand, keine Oberflaeche und kein Provider — damit
+/// er sich pruefen laesst.
+class EinmaligeOeffnung {
+  final Set<String> _laufend = {};
+
+  /// Ob fuer diese Nachricht gerade ein Durchlauf laeuft.
+  bool laeuft(String messageId) => _laufend.contains(messageId);
+
+  /// Einen Durchlauf beginnen. `false`, wenn schon einer laeuft — dann ist
+  /// dieser Tipp zu verwerfen.
+  bool beginne(String messageId) => _laufend.add(messageId);
+
+  /// Der Durchlauf ist zu Ende, gleich wie: abgebrochen, verbraucht, Fehler.
+  void beende(String messageId) => _laufend.remove(messageId);
+}

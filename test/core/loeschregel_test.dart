@@ -120,6 +120,7 @@ void main() {
       DateTime? gelesenAm,
       String von = 'marco',
       SystemEventKind? hinweis,
+      bool einmalig = false,
     }) =>
         Message(
           id: 'm1',
@@ -131,6 +132,7 @@ void main() {
           deliveredAt: DateTime(2026, 9, 4, 12),
           readAt: gelesenAm,
           systemEvent: hinweis,
+          einmalig: einmalig,
         );
 
     final gelesen = DateTime(2026, 9, 4, 12, 5);
@@ -166,6 +168,22 @@ void main() {
       expect(
         SelfDestructPolicy.nachLesenFaellig(
             nachricht(gelesenAm: gelesen, hinweis: SystemEventKind.screenshot),
+            regelNachLesen: true),
+        isFalse,
+      );
+    });
+
+    test('eine einmalige Nachricht geht mit dem Oeffnen, nicht mit dem Verlassen',
+        () {
+      // Ihr `readAt` steht schon bei der Zustellung, wenn der Chat gerade
+      // offen ist — gelesen ist damit die Blase, nicht der Inhalt. Der
+      // liegt hinter dem Tor, und das Tor verbraucht sie. Bis zum 07.09.2026
+      // raeumte „Direkt nach dem Lesen" sie beim Verlassen des Chats weg,
+      // ungeoeffnet, auf beiden Geraeten: wer nur kurz hineinsah, hatte sie
+      // verloren, ohne sie je gesehen zu haben.
+      expect(
+        SelfDestructPolicy.nachLesenFaellig(
+            nachricht(gelesenAm: gelesen, einmalig: true),
             regelNachLesen: true),
         isFalse,
       );

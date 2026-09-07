@@ -207,8 +207,17 @@ abstract final class SelfDestructPolicy {
   /// `readAt` setzt der Empfaenger fuer sich, **unabhaengig von der
   /// Lesebestaetigung**. Die entscheidet nur, ob die Gegenseite davon
   /// erfaehrt; ob geloescht wird, haengt nicht daran.
+  ///
+  /// **Eine einmalige Nachricht ist ausgenommen.** Ihr `readAt` steht schon
+  /// bei der Zustellung, wenn der Chat gerade offen ist — gelesen ist damit
+  /// die Blase mit dem Tor, nicht der Inhalt dahinter. Der wird erst mit
+  /// dem Oeffnen gelesen, und das Oeffnen verbraucht sie sofort, siehe
+  /// EinmaligPolicy. Bis zum 07.09.2026 raeumte diese Regel sie beim
+  /// Verlassen des Chats weg, ungeoeffnet, und meldete das dem Absender als
+  /// Ablauf: wer nur kurz in den Chat sah, hatte sie auf beiden Geraeten
+  /// verloren, ohne sie je gesehen zu haben.
   static bool nachLesenFaellig(Message m, {required bool regelNachLesen}) =>
-      regelNachLesen && !m.isSystemEvent && m.readAt != null;
+      regelNachLesen && !m.isSystemEvent && !m.einmalig && m.readAt != null;
 
   /// Ob ich diese Nachricht selbst als vergaenglich markiert habe.
   ///

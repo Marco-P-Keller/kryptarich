@@ -23,6 +23,7 @@ import 'contact_request_policy.dart';
 import 'inbox_reconnect_backoff.dart';
 import 'self_destruct_policy.dart';
 import 'einmalig_policy.dart';
+import 'ausstehende_meldungen.dart';
 import 'unread_policy.dart';
 import 'gone_policy.dart';
 import 'verification_policy.dart';
@@ -184,6 +185,20 @@ class MessengerProvider extends ChangeNotifier {
   bool _pushPrivacyEnabled = false;
   /// Pending jitter timers for control message delivery (cancelled on wipe/dispose).
   final List<Timer> _pendingJitterTimers = [];
+
+  /// Die Ablaufmeldungen an die Gegenseite, die noch nicht raus sind.
+  ///
+  /// Beim Start geladen, nach jeder Aenderung festgeschrieben und beim
+  /// Anlauf des Empfangs nachgeholt — siehe [AusstehendeMeldungen] fuer den
+  /// Grund. Der Zeitgeber allein hat die Zusage der einmaligen Nachricht
+  /// nicht gehalten.
+  AusstehendeMeldungen _ausstehendeMeldungen = AusstehendeMeldungen();
+  static const String _ausstehendeMeldungenStoreKey = 'ausstehende_meldungen';
+
+  /// Fuer welche Ablaufmeldungen gerade ein Zeitgeber laeuft
+  /// (`chatId|messageId`). Sonst plante das Nachholen beim Aufwachen
+  /// dieselbe Meldung ein zweites Mal ein, waehrend die erste noch wartet.
+  final Set<String> _ablaufmeldungenUnterwegs = {};
   /// Control message counter for replay prevention (persisted across sessions).
   final ControlMessageCounter _controlCounter = ControlMessageCounter();
   /// Cached HMAC keys per contact for control message signing.
@@ -330,6 +345,13 @@ class MessengerProvider extends ChangeNotifier {
 
     // Load persisted replay-protection IDs (survives message deletion)
     _processedMessageIds.addAll(await _localStore.loadProcessedIds());
+
+    // Was an Ablaufmeldungen beim letzten Mal nicht mehr rausging. Nachgeholt
+    // wird, sobald der Empfang steht, siehe _startSync.
+    try {
+      _ausstehendeMeldungen = AusstehendeMeldungen.fromJson(
+          await _localStore.loadData(_ausstehendeMeldungenStoreKey));
+    } catch (_) {}
 
     // Load accepted handshake ephemerals (session-heal replay guard)
     try {
@@ -513,9 +535,9 @@ class MessengerProvider extends ChangeNotifier {
     }
 
     _startSync();
-    // Clean up expired messages BEFORE starting timer to avoid concurrent modification
+    // Einmal aufraeumen, was waehrend der Standzeit faellig geworden ist. Der
+    // Sekundentakt selbst haengt an _startSync.
     _cleanupExpiredMessages();
-    _startSelfDestructTimer();
     _isInitialized = true;
     notifyListeners();
   }
@@ -1521,7 +1543,11 @@ class MessengerProvider extends ChangeNotifier {
   /// encrypts with Double Ratchet → sends via message relay.
   /// The server sees only a regular encrypted message — indistinguishable
   /// from content messages.
-  Future<void> _sendControlMessage({
+  /// Gibt zurueck, ob die Meldung raus ist. `false` heisst: nicht gesendet,
+  /// weil es keine Sitzung gibt oder der Kontakt gesperrt ist. Ein
+  /// Netzfehler wirft. Die meisten Aufrufer sehen nicht hin; die
+  /// Ablaufmeldung schon, sie wird sonst nachgeholt.
+  Future<bool> _sendControlMessage({
     required String chatId,
     required Contact contact,
     required String type,
@@ -1537,16 +1563,16 @@ class MessengerProvider extends ChangeNotifier {
         ));
   }
 
-  Future<void> _sendControlMessageLocked({
+  Future<bool> _sendControlMessageLocked({
     required String chatId,
     required Contact contact,
     required String type,
     required String messageId,
   }) async {
-    if (userId == null) return;
+    if (userId == null) return false;
     // Trust gate: don't send control messages to compromised contacts
-    if (_validateSendPermission(contact) != null) return;
-    if (!_ratchetStates.containsKey(chatId)) return;
+    if (_validateSendPermission(contact) != null) return false;
+    if (!_ratchetStates.containsKey(chatId)) return false;
 
     final hmacKey = await _deriveControlHmacKey(contact);
     try {
@@ -1579,6 +1605,7 @@ class MessengerProvider extends ChangeNotifier {
         encryptedPayload: payloadMap,
       );
       _handschlagVerbraucht(chatId);
+      return true;
     } finally {
       SensitiveBuffer.zeroBytes(hmacKey);
     }
@@ -2312,7 +2339,7 @@ class MessengerProvider extends ChangeNotifier {
           contact: contact,
           type: 'gone',
           messageId: _uuid.v4(),
-        ).catchError((_) {}),
+        ).catchError((_) => false),
       );
     }
     if (sendungen.isEmpty) return;
@@ -2556,6 +2583,11 @@ class MessengerProvider extends ChangeNotifier {
         ..clear()
         ..addAll(newChats);
       _messagesByChat.remove(chatId);
+      // Seine Ablaufmeldungen gehen mit: gleich gibt es keine Sitzung mehr,
+      // gegen die sie signiert wuerden.
+      if (_ausstehendeMeldungen.fuerChatVerwerfen(chatId) > 0) {
+        await _ausstehendeMeldungenSpeichern();
+      }
 
       // Zero ratchet private keys before removing from memory.
       final ratchet = _ratchetStates.remove(chatId);
@@ -2647,7 +2679,7 @@ class MessengerProvider extends ChangeNotifier {
           version: version,
         ),
         messageId: hinweisId,
-      ).catchError((_) {}));
+      ).catchError((_) => false));
     }
   }
 
@@ -2807,82 +2839,9 @@ class MessengerProvider extends ChangeNotifier {
       }
     }
 
-    // Pre-send key validation: check if the server key has changed since
-    // we last fetched it. This catches key changes that happen between
-    // inbox notifications, preventing messages encrypted to a stale key.
-    // Fail-closed: if we can't verify the key, don't send.
-    //
-    // Uebersprungen wird sie nur, wenn der Aufrufer den Schluessel gerade
-    // selbst geholt hat und der Kontakt aus dieser Antwort gebaut wurde
-    // (Hinzufuegen und QR-Scan). Dort war es dieselbe Abfrage im Abstand von
-    // Millisekunden — zweimal fragen sagt dem Server nur ein zweites Mal, wer
-    // sich fuer wen interessiert, und liefert sonst nichts.
-    if (needsServerKeyCheck(
-      preverified: preverifiedServerKey,
-      contactKey: base64Encode(contact.publicKey),
-    )) {
-      try {
-        final serverKeyBase64 = await _firestore.getPublicKey(contact.id);
-        if (serverKeyBase64 != null &&
-            serverKeyBase64 != base64Encode(contact.publicKey)) {
-          // Key changed on server — trigger key change flow and abort send.
-          await addContact(contact.id);
-          if (kDebugMode) debugPrint('Send aborted: server key changed');
-          return;
-        }
-      } catch (e) {
-        // Fail-closed: if we cannot verify the recipient's key is still
-        // valid, refuse to send. A malicious server could return errors
-        // to prevent key change detection while the key is compromised.
-        if (kDebugMode) {
-          debugPrint('Send aborted: key verification failed: $e');
-        }
-        return;
-      }
-    }
-
-    // Rotate our own delivery token if expired (24h max age).
-    // This limits how long a token can be used to correlate our messages.
-    if (_deliveryToken != null && _deliveryToken!.isExpired && userId != null) {
-      try {
-        final newToken = SealedSender.generateDeliveryToken();
-        await _firestore.publishDeliveryToken(
-          userId: userId!,
-          token: newToken.token,
-        );
-        _deliveryToken = newToken;
-      } catch (_) {
-        // Rotation failed — keep using existing token.
-      }
-    }
-
     final messageId = _uuid.v4();
     final now = DateTime.now();
     final hasPassword = password != null && password.isNotEmpty;
-
-    // If password-protected, validate password strength first, then encrypt.
-    // The password-encrypted blob becomes the "content" that travels through E2E.
-    // The sender sees the original text; the recipient sees a locked message.
-    String contentForTransmission = text;
-    if (hasPassword) {
-      // Keine Mindestregeln für das Passwort einer einzelnen Nachricht —
-      // siehe chat_screen. Argon2id leitet auch aus einem kurzen Passwort
-      // einen brauchbaren Schlüssel ab; der Schutz ist ohnehin nur die
-      // zweite Schicht über der Ende-zu-Ende-Verschlüsselung.
-      //
-      // H4-Crypto (audit 2026-05): bind the password-encrypted blob to its
-      // cross-device context. NOTE: `chatId` is a per-device local UUID
-      // and would not match between sender and recipient — Codex round 1
-      // P1. Use stable identifiers that both sides can reproduce:
-      // sender UID, recipient UID, message id (sender-generated, carried
-      // intact in the envelope). The "pwd-v1|" prefix keeps room for
-      // future context format changes.
-      contentForTransmission = await _encryption.encryptWithPassword(
-        plaintext: text,
-        password: password,
-        aad: 'pwd-v1|${userId!}|${chat.recipientId}|$messageId',
-      );
-    }
 
     final message = Message(
       id: messageId,
@@ -2911,6 +2870,91 @@ class MessengerProvider extends ChangeNotifier {
       notifyListeners();
     }
 
+    // Die Blase steht schon — und das ist der Punkt. Vorher lagen diese
+    // beiden Netzabfragen **vor** dem Anlegen der Nachricht: schlug die
+    // Schluesselpruefung fehl, brach das Senden ab, ohne dass je eine Blase
+    // entstand. Der Text war aus dem Eingabefeld verschwunden, im Verlauf
+    // stand nichts, und niemand erfuhr davon — die Nachricht war einfach weg.
+    // Jetzt scheitert sie sichtbar: die Blase bleibt stehen und traegt
+    // `failed`.
+    //
+    // An der Pruefung selbst aendert sich nichts. Sie bleibt fail-closed und
+    // laeuft weiterhin, bevor irgendetwas verschluesselt oder gesendet wird.
+    //
+    // Pre-send key validation: check if the server key has changed since
+    // we last fetched it. This catches key changes that happen between
+    // inbox notifications, preventing messages encrypted to a stale key.
+    // Fail-closed: if we can't verify the key, don't send.
+    //
+    // Uebersprungen wird sie nur, wenn der Aufrufer den Schluessel gerade
+    // selbst geholt hat und der Kontakt aus dieser Antwort gebaut wurde
+    // (Hinzufuegen und QR-Scan). Dort war es dieselbe Abfrage im Abstand von
+    // Millisekunden — zweimal fragen sagt dem Server nur ein zweites Mal, wer
+    // sich fuer wen interessiert, und liefert sonst nichts.
+    if (needsServerKeyCheck(
+      preverified: preverifiedServerKey,
+      contactKey: base64Encode(contact.publicKey),
+    )) {
+      try {
+        final serverKeyBase64 = await _firestore.getPublicKey(contact.id);
+        if (serverKeyBase64 != null &&
+            serverKeyBase64 != base64Encode(contact.publicKey)) {
+          // Key changed on server — trigger key change flow and abort send.
+          await addContact(contact.id);
+          if (kDebugMode) debugPrint('Send aborted: server key changed');
+          _updateMessageStatus(chatId, messageId, MessageStatus.failed);
+          return;
+        }
+      } catch (e) {
+        // Fail-closed: if we cannot verify the recipient's key is still
+        // valid, refuse to send. A malicious server could return errors
+        // to prevent key change detection while the key is compromised.
+        if (kDebugMode) {
+          debugPrint('Send aborted: key verification failed: $e');
+        }
+        _updateMessageStatus(chatId, messageId, MessageStatus.failed);
+        return;
+      }
+    }
+
+    // Rotate our own delivery token if expired (24h max age).
+    // This limits how long a token can be used to correlate our messages.
+    if (_deliveryToken != null && _deliveryToken!.isExpired && userId != null) {
+      try {
+        final newToken = SealedSender.generateDeliveryToken();
+        await _firestore.publishDeliveryToken(
+          userId: userId!,
+          token: newToken.token,
+        );
+        _deliveryToken = newToken;
+      } catch (_) {
+        // Rotation failed — keep using existing token.
+      }
+    }
+
+    // If password-protected, validate password strength first, then encrypt.
+    // The password-encrypted blob becomes the "content" that travels through E2E.
+    // The sender sees the original text; the recipient sees a locked message.
+    String contentForTransmission = text;
+    if (hasPassword) {
+      // Keine Mindestregeln für das Passwort einer einzelnen Nachricht —
+      // siehe chat_screen. Argon2id leitet auch aus einem kurzen Passwort
+      // einen brauchbaren Schlüssel ab; der Schutz ist ohnehin nur die
+      // zweite Schicht über der Ende-zu-Ende-Verschlüsselung.
+      //
+      // H4-Crypto (audit 2026-05): bind the password-encrypted blob to its
+      // cross-device context. NOTE: `chatId` is a per-device local UUID
+      // and would not match between sender and recipient — Codex round 1
+      // P1. Use stable identifiers that both sides can reproduce:
+      // sender UID, recipient UID, message id (sender-generated, carried
+      // intact in the envelope). The "pwd-v1|" prefix keeps room for
+      // future context format changes.
+      contentForTransmission = await _encryption.encryptWithPassword(
+        plaintext: text,
+        password: password,
+        aad: 'pwd-v1|${userId!}|${chat.recipientId}|$messageId',
+      );
+    }
     try {
       // Initialize ratchet for first message if needed
       if (!_ratchetStates.containsKey(chatId)) {
@@ -3213,9 +3257,8 @@ class MessengerProvider extends ChangeNotifier {
       }
     }
 
-    // Restart sync with new mode
+    // Restart sync with new mode — der Zeitgeber haengt daran.
     _startSync();
-    _startSelfDestructTimer();
     notifyListeners();
   }
 
@@ -3294,6 +3337,23 @@ class MessengerProvider extends ChangeNotifier {
       // Single inbox listener handles both content and control messages.
       _startInboxListenerWithReconnect();
     }
+
+    // Die Uhr fuer die Loeschfristen gehoert zum laufenden Empfang und wird
+    // deshalb hier gestartet, nicht nebenher.
+    //
+    // Vorher stand sie nur in initialize() und setPushPrivacyEnabled().
+    // _stopSync hat sie beim Wechsel in den Hintergrund mit abgeraeumt, und
+    // resumeSync holte allein den Posteingang zurueck — nach dem ersten
+    // Wegwischen lief die Uhr fuer den Rest der Sitzung nicht mehr. Abgelaufene
+    // Nachrichten verschwanden dann erst beim naechsten Start der App, und die
+    // Ablaufmeldung an die Gegenseite blieb genauso lange aus.
+    _startSelfDestructTimer();
+
+    // Was der Gegenseite noch zu melden ist, geht jetzt raus — beim Start
+    // wie beim Aufwachen. Hier und nicht nur in initialize(): der Zeitgeber
+    // einer Meldung von vor dem Wegwischen kann im Hintergrund verhungert
+    // sein.
+    _ausstehendeMeldungenNachholen();
   }
 
   /// B2: start the inbox stream with automatic reconnect on stream error.
@@ -3934,7 +3994,7 @@ class MessengerProvider extends ChangeNotifier {
       for (final m in faellig) {
         if (SelfDestructPolicy.announceBurn(m, ich,
             chatVergaenglich: chatVergaenglich)) {
-          _meldeAblauf(chatId, m.id);
+          unawaited(_meldeAblauf(chatId, m.id));
         }
       }
 
@@ -3947,11 +4007,6 @@ class MessengerProvider extends ChangeNotifier {
     return geaendert;
   }
 
-  /// Der Gegenseite melden, dass ihre Nachricht bei mir abgelaufen ist.
-  ///
-  /// Mit derselben zeitlichen Streuung wie die Empfangsbestaetigungen: der
-  /// Ablaufzeitpunkt verraet den Lesezeitpunkt, und der soll nicht auf die
-  /// Sekunde genau ablesbar sein.
   /// Eine einmalige Nachricht verbrauchen und ihren Klartext herausgeben.
   ///
   /// Die Reihenfolge ist die eigentliche Aussage: erst von der Platte
@@ -3976,30 +4031,124 @@ class MessengerProvider extends ChangeNotifier {
 
     messages.removeAt(idx);
     await _localStore.saveMessages(chatId, messages);
-    _meldeAblauf(chatId, messageId);
+    // Auch die Meldung an den Absender steht auf der Platte, bevor der Text
+    // herausgeht: sie darf ebensowenig verloren gehen wie das Verbrauchen.
+    await _meldeAblauf(chatId, messageId);
     _standNachrechnen(chatId);
     notifyListeners();
     return text;
   }
 
-  void _meldeAblauf(String chatId, String messageId) {
-    final idx = _chats.indexWhere((c) => c.id == chatId);
-    if (idx == -1) return;
-    final contact = contactForId(_chats[idx].recipientId);
-    if (contact == null) return;
+  /// Der Gegenseite melden, dass ihre Nachricht bei mir abgelaufen ist.
+  ///
+  /// **Erst festschreiben, dann senden.** Bis zum 07.09.2026 hing die
+  /// Meldung allein an einem Zeitgeber von 0,5 bis 5 Sekunden. Wer in dieser
+  /// Spanne die App wegwischte oder gerade kein Netz hatte, hat sie
+  /// verloren — die einmalige Nachricht war beim Empfaenger fort und stand
+  /// beim Absender fuer immer. Jetzt steht sie zuerst auf der Platte und
+  /// wird erst nach dem gelungenen Senden gestrichen; was liegen bleibt,
+  /// holt _ausstehendeMeldungenNachholen beim naechsten Anlauf nach.
+  ///
+  /// Wartet auf das Festschreiben, nicht auf das Senden: der Aufrufer darf
+  /// weitermachen, sobald die Meldung nicht mehr verloren gehen kann.
+  Future<void> _meldeAblauf(String chatId, String messageId) async {
+    if (_ausstehendeMeldungen.merken(
+        chatId: chatId, messageId: messageId, jetzt: DateTime.now())) {
+      await _ausstehendeMeldungenSpeichern();
+    }
+    _ablaufmeldungEinplanen(chatId, messageId);
+  }
+
+  Future<void> _ausstehendeMeldungenSpeichern() async {
+    try {
+      await _localStore.saveData(
+          _ausstehendeMeldungenStoreKey, _ausstehendeMeldungen.toJson());
+    } catch (e) {
+      if (kDebugMode) debugPrint('Ausstehende Meldungen nicht gespeichert: $e');
+    }
+  }
+
+  /// Eine vorgemerkte Ablaufmeldung mit zeitlicher Streuung auf den Weg
+  /// bringen.
+  ///
+  /// Dieselbe Streuung wie bei den Empfangsbestaetigungen: der Ablaufzeitpunkt
+  /// verraet den Lesezeitpunkt, und der soll nicht auf die Sekunde genau
+  /// ablesbar sein. Laeuft fuer diese Meldung schon ein Zeitgeber, passiert
+  /// nichts — sonst ginge sie beim Nachholen doppelt raus.
+  void _ablaufmeldungEinplanen(String chatId, String messageId) {
+    final schluessel = '$chatId|$messageId';
+    if (!_ablaufmeldungenUnterwegs.add(schluessel)) return;
+    // Abgelaufene Zeitgeber wegraeumen. Die Liste dient nur dem Absagen beim
+    // Abbau; was schon gefeuert hat, gehoert nicht mehr hinein. Ohne das
+    // waechst sie mit jedem Nachholversuch weiter.
+    _pendingJitterTimers.removeWhere((t) => !t.isActive);
     _pendingJitterTimers.add(
-      TimingProtection.sendDeliveryAckWithJitter(
-        () => _sendControlMessage(
-          chatId: chatId,
-          contact: contact,
-          type: 'burned',
-          messageId: messageId,
-        ),
-      ),
+      TimingProtection.sendDeliveryAckWithJitter(() async {
+        try {
+          await _ablaufmeldungSenden(chatId, messageId);
+        } finally {
+          _ablaufmeldungenUnterwegs.remove(schluessel);
+        }
+      }),
     );
   }
 
+  /// Die Meldung senden und, wenn sie raus ist, streichen.
+  ///
+  /// Bleibt sie haengen — kein Netz, keine Sitzung, Kontakt gesperrt —,
+  /// bleibt sie vorgemerkt und wird beim naechsten Anlauf erneut versucht.
+  /// Nur wenn es den Chat oder den Kontakt nicht mehr gibt, ist niemand mehr
+  /// da, dem etwas zu melden waere; dann faellt sie weg.
+  Future<void> _ablaufmeldungSenden(String chatId, String messageId) async {
+    final idx = _chats.indexWhere((c) => c.id == chatId);
+    final contact = idx == -1 ? null : contactForId(_chats[idx].recipientId);
+    if (contact == null) {
+      if (_ausstehendeMeldungen.erledigt(
+          chatId: chatId, messageId: messageId)) {
+        await _ausstehendeMeldungenSpeichern();
+      }
+      return;
+    }
+    bool raus;
+    try {
+      raus = await _sendControlMessage(
+        chatId: chatId,
+        contact: contact,
+        type: 'burned',
+        messageId: messageId,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Ablaufmeldung nicht raus, wird nachgeholt: $e');
+      }
+      return;
+    }
+    if (!raus) return;
+    if (_ausstehendeMeldungen.erledigt(chatId: chatId, messageId: messageId)) {
+      await _ausstehendeMeldungenSpeichern();
+    }
+  }
+
+  /// Nachholen, was beim letzten Mal nicht rausging.
+  ///
+  /// Was die Gegenseite nicht mehr annehmen wuerde, faellt vorher weg —
+  /// siehe AusstehendeMeldungen.verfall.
+  void _ausstehendeMeldungenNachholen() {
+    if (_ausstehendeMeldungen.verfalleneVerwerfen(DateTime.now()) > 0) {
+      unawaited(_ausstehendeMeldungenSpeichern());
+    }
+    for (final m in _ausstehendeMeldungen.alle) {
+      _ablaufmeldungEinplanen(m.chatId, m.messageId);
+    }
+  }
+
+  /// Die Uhr, die jede Sekunde nach faelligen Nachrichten sieht.
+  ///
+  /// Idempotent: ein zweiter Aufruf loest den vorigen Zeitgeber ab, statt
+  /// einen zweiten danebenzustellen. Gestartet wird sie in [_startSync] —
+  /// dort, wo auch der Posteingang anlaeuft.
   void _startSelfDestructTimer() {
+    _selfDestructTimer?.cancel();
     _selfDestructTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       final nachrichten = _raeumeAbgelaufene();
       final kontakte = _raeumeFortgefalleneKontakte();
@@ -4049,7 +4198,7 @@ class MessengerProvider extends ChangeNotifier {
     for (final m in verbrannt) {
       if (SelfDestructPolicy.announceBurn(m, ich,
           chatVergaenglich: chatVergaenglich)) {
-        _meldeAblauf(chatId, m.id);
+        await _meldeAblauf(chatId, m.id);
       }
     }
 
@@ -4673,6 +4822,8 @@ class MessengerProvider extends ChangeNotifier {
     _acceptedHandshakeEks.clear();
     _typingStates.clear();
     _processedMessageIds.clear();
+    _ausstehendeMeldungen = AusstehendeMeldungen();
+    _ablaufmeldungenUnterwegs.clear();
     _unlockAttempts.clear();
     _recordingNotices.clear();
     _activeChatId = null;
@@ -4744,6 +4895,10 @@ class MessengerProvider extends ChangeNotifier {
         timer.cancel();
       }
       _pendingJitterTimers.clear();
+      // Die abgesagten Ablaufmeldungen sind nicht verloren: sie stehen
+      // weiter in _ausstehendeMeldungen und werden beim naechsten Anlauf
+      // neu eingeplant. Nur die Merkliste der laufenden Zeitgeber muss mit.
+      _ablaufmeldungenUnterwegs.clear();
     }
     _isSyncing = false;
   }

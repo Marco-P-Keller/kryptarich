@@ -11,6 +11,7 @@ import '../../../widgets/emergency_button.dart';
 import '../data/models/chat_model.dart';
 import '../data/models/message_model.dart';
 import '../data/models/contact_model.dart';
+import '../logic/einmalig_policy.dart';
 import '../logic/frist_stufe.dart';
 import '../logic/messenger_provider.dart';
 import 'einmalige_nachricht_screen.dart';
@@ -56,6 +57,9 @@ class _ChatScreenState extends State<ChatScreen>
   /// bleibt davon unberuehrt und gilt weiterhin fuer jede Nachricht, die
   /// nicht einmalig ist.
   bool _einmalig = false;
+
+  /// Je einmaliger Nachricht nur ein Durchlauf, siehe EinmaligeOeffnung.
+  final _oeffnungen = EinmaligeOeffnung();
   String? _messagePassword;
   StreamSubscription<bool>? _screenshotSub;
   StreamSubscription<int>? _captureSub;
@@ -197,11 +201,27 @@ class _ChatScreenState extends State<ChatScreen>
 
   /// Eine einmalige Nachricht oeffnen.
   ///
+  /// Je Nachricht nur ein Durchlauf. Bis zum 07.09.2026 startete jeder Tipp
+  /// einen eigenen: zwei schnelle Tipps hiessen zwei Rueckfragen
+  /// uebereinander, und wer nach der Ansicht auch die zweite bestaetigte,
+  /// bekam nichts, ohne zu wissen warum. Solange der Durchlauf laeuft, zeigt
+  /// die Blase die Schaltflaeche gesperrt, siehe _buildMessageList.
+  Future<void> _oeffneEinmalige(Message m) async {
+    if (!_oeffnungen.beginne(m.id)) return;
+    setState(() {});
+    try {
+      await _einmaligeDurchlaufen(m);
+    } finally {
+      _oeffnungen.beende(m.id);
+      if (mounted) setState(() {});
+    }
+  }
+
   /// Erst die Rueckfrage, dann verbrauchen, dann anzeigen. Die Reihenfolge
   /// haengt an Daniels Entscheidung vom 02.09.2026: verbraucht wird beim
   /// Bestaetigen, nicht beim Schliessen. Nur so haelt die Zusage auch dann,
   /// wenn die App abstuerzt oder der Akku leer wird.
-  Future<void> _oeffneEinmalige(Message m) async {
+  Future<void> _einmaligeDurchlaufen(Message m) async {
     final l10n = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
       context: context,
@@ -610,9 +630,13 @@ class _ChatScreenState extends State<ChatScreen>
               message: msg,
               isMine: isMine,
               eigeneId: messenger.userId,
-              onOeffnen: msg.einmalig && !isMine
-                  ? () => _oeffneEinmalige(msg)
-                  : null,
+              // Kein Aufrufer, solange ein Durchlauf laeuft: die Blase zeigt
+              // die Schaltflaeche dann gesperrt, und ein zweiter Tipp
+              // verpufft, statt eine zweite Rueckfrage zu stellen.
+              onOeffnen:
+                  msg.einmalig && !isMine && !_oeffnungen.laeuft(msg.id)
+                      ? () => _oeffneEinmalige(msg)
+                      : null,
             );
           },
         );
