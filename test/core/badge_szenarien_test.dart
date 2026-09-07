@@ -27,8 +27,10 @@ void main() {
   final ich = 'ich';
 
   ({
-    void Function(String chatId, {String von, bool hinweis}) zustellen,
+    void Function(String chatId, {String von, bool hinweis, bool einmalig})
+        zustellen,
     void Function(String chatId) oeffnen,
+    void Function(String chatId) verbrauchen,
     void Function() verlassen,
     void Function() weglegen,
     void Function() zurueckkommen,
@@ -41,7 +43,8 @@ void main() {
     var vorne = true;
     var lauf = 0;
 
-    void zustellen(String chatId, {String von = 'marco', bool hinweis = false}) {
+    void zustellen(String chatId,
+        {String von = 'marco', bool hinweis = false, bool einmalig = false}) {
       lauf++;
       final jetzt = DateTime(2026, 9, 4, 12, 0).add(Duration(minutes: lauf));
       final gelesen = UnreadPolicy.beiZustellungGelesen(
@@ -62,7 +65,16 @@ void main() {
             readAt: gelesen ? jetzt : null,
             status: gelesen ? MessageStatus.read : MessageStatus.delivered,
             systemEvent: hinweis ? SystemEventKind.screenshot : null,
+            einmalig: einmalig,
           ));
+    }
+
+    /// Eine einmalige Nachricht oeffnen heisst: sie ist fort. Genau das tut
+    /// `verbraucheEinmalige` — entfernen, dann den Stand neu zaehlen.
+    void verbrauchen(String chatId) {
+      final liste = chats[chatId] ?? [];
+      final i = liste.indexWhere((m) => m.einmalig);
+      if (i != -1) liste.removeAt(i);
     }
 
     /// Den Chat oeffnen heisst: alles darin als gelesen markieren.
@@ -80,6 +92,7 @@ void main() {
     return (
       zustellen: zustellen,
       oeffnen: oeffnen,
+      verbrauchen: verbrauchen,
       verlassen: () => offen = null,
       weglegen: () => vorne = false,
       zurueckkommen: () {
@@ -203,5 +216,68 @@ void main() {
     // Und eine neue Nachricht danach zaehlt wieder ganz normal.
     p.zustellen('c1');
     expect(p.badge('c1'), 1);
+  });
+
+  // ─── Die einmalige Nachricht im Zaehler ──────────────────────────────
+  //
+  // Daniels Frage vom 07.09.2026: sieht man in der Chatliste, dass eine neue
+  // da ist? Sie war im Zaehler bisher nirgends geprueft — er zaehlt nach
+  // `readAt`, und `einmalig` kommt darin nicht vor. Das ist richtig so, aber
+  // ungeprueft war es Zufall.
+  group('Die einmalige Nachricht in der Chatliste', () {
+    test('sie macht ein Badge wie jede andere Nachricht', () {
+      final p = postfach();
+      p.zustellen('c1', einmalig: true);
+      expect(p.badge('c1'), 1);
+    });
+
+    test('sie zaehlt neben gewoehnlichen mit', () {
+      final p = postfach();
+      p.zustellen('c1');
+      p.zustellen('c1', einmalig: true);
+      expect(p.badge('c1'), 2);
+    });
+
+    test('kommt sie in den offenen Chat, gibt es kein Badge', () {
+      // Man sieht sie ja vor sich stehen — mit dem Tor darauf.
+      final p = postfach();
+      p.oeffnen('c1');
+      p.zustellen('c1', einmalig: true);
+      expect(p.badge('c1'), 0);
+    });
+
+    test('Chat oeffnen nimmt das Badge, die Nachricht bleibt aber liegen', () {
+      // Der Unterschied zu jeder anderen Nachricht: „gelesen" heisst hier nur,
+      // dass die Blase gesehen wurde. Der Inhalt liegt weiter hinter dem Tor,
+      // und das Tor bleibt stehen, bis er ihn oeffnet — auch ueber einen
+      // Neustart hinweg.
+      final p = postfach();
+      p.zustellen('c1', einmalig: true);
+      p.oeffnen('c1');
+      expect(p.badge('c1'), 0);
+      expect(p.neuGeladen('c1').single.einmalig, isTrue,
+          reason: 'ungeoeffnet bleibt sie liegen, das Badge sagt nur, dass '
+              'er den Chat gesehen hat');
+    });
+
+    test('nach dem Verbrauchen ist sie aus dem Zaehler und aus der Liste', () {
+      final p = postfach();
+      p.zustellen('c1', einmalig: true);
+      p.zustellen('c1');
+      expect(p.badge('c1'), 2);
+      p.oeffnen('c1');
+      p.verbrauchen('c1');
+      expect(p.badge('c1'), 0);
+      expect(p.neuGeladen('c1').any((m) => m.einmalig), isFalse);
+    });
+
+    test('sie ueberlebt den Neustart und das Badge kommt nicht zurueck', () {
+      final p = postfach();
+      p.zustellen('c1', einmalig: true);
+      p.oeffnen('c1');
+      final nachNeustart = p.neuGeladen('c1');
+      expect(UnreadPolicy.zaehle(nachNeustart, 'ich').anzahl, 0);
+      expect(nachNeustart.single.einmalig, isTrue);
+    });
   });
 }
