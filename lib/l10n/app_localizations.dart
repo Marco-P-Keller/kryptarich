@@ -1182,23 +1182,23 @@ abstract class AppLocalizations {
   /// **'No hardware security available'**
   String get hardwareSoftwareSubtitle;
 
-  /// No description provided for @pushPrivacy.
+  /// No description provided for @pushNotifications.
   ///
   /// In en, this message translates to:
-  /// **'Push privacy'**
-  String get pushPrivacy;
+  /// **'Push notifications'**
+  String get pushNotifications;
 
-  /// No description provided for @pushPrivacyOn.
+  /// No description provided for @pushNotificationsOn.
   ///
   /// In en, this message translates to:
-  /// **'On — messages are fetched by polling'**
-  String get pushPrivacyOn;
+  /// **'On — the lock screen says that something has arrived'**
+  String get pushNotificationsOn;
 
-  /// No description provided for @pushPrivacyOff.
+  /// No description provided for @pushNotificationsOff.
   ///
   /// In en, this message translates to:
-  /// **'Off — push notifications active'**
-  String get pushPrivacyOff;
+  /// **'Off — messages still arrive, you see them when you open the app'**
+  String get pushNotificationsOff;
 
   /// No description provided for @readReceipts.
   ///

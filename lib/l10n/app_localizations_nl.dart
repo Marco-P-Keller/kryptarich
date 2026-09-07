@@ -606,13 +606,15 @@ class AppLocalizationsNl extends AppLocalizations {
   String get hardwareSoftwareSubtitle => 'Geen hardwarebeveiliging beschikbaar';
 
   @override
-  String get pushPrivacy => 'Privacy van meldingen';
+  String get pushNotifications => 'Pushmeldingen';
 
   @override
-  String get pushPrivacyOn => 'Aan – berichten worden opgehaald via polling';
+  String get pushNotificationsOn =>
+      'Aan – het vergrendelscherm meldt dat er iets is aangekomen';
 
   @override
-  String get pushPrivacyOff => 'Uit – pushmeldingen actief';
+  String get pushNotificationsOff =>
+      'Uit – berichten komen gewoon aan, je ziet ze als je de app opent';
 
   @override
   String get readReceipts => 'Leesbevestigingen';

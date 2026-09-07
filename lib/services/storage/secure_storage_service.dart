@@ -159,22 +159,31 @@ class SecureStorageService {
     return value == 'true';
   }
 
-  // --- Push Privacy Mode ---
+  // --- Push-Benachrichtigungen ---
 
-  /// When enabled, FCM push notifications are disabled and the app
-  /// polls for messages with randomized intervals instead. This prevents
-  /// the push notification provider (Google/Apple) from learning when
-  /// messages are received or their frequency patterns.
-  Future<void> setPushPrivacyEnabled(bool enabled) async {
+  /// Ob der Sperrbildschirm melden darf, dass etwas angekommen ist.
+  ///
+  /// **Standard ist an.** Wer den Schalter umlegt, bekommt keine Meldung mehr;
+  /// Nachrichten kommen weiterhin an, er erfaehrt es nur erst beim Oeffnen der
+  /// App. Was auf dem Sperrbildschirm steht, ist festgelegt und aendert sich
+  /// dadurch nicht — siehe test/core/push_text_test.dart.
+  ///
+  /// **Auf der Platte steht weiter das alte, umgekehrte Feld**
+  /// (`krypta_cfg_push_privacy`, „Push-Privatsphaere an" = „Push aus"). Es
+  /// liegt auf jedem Geraet, das schon einmal lief. Ein neuer Schluessel
+  /// haette bedeutet, dass jeder, der Push abgeschaltet hatte, sie nach dem
+  /// Update wieder bekommt — die Umkehr passiert deshalb hier, an genau einer
+  /// Stelle, und der Bestand bleibt gueltig.
+  Future<void> setPushNotificationsEnabled(bool enabled) async {
     await _storage.write(
       key: StorageKeys.pushPrivacyMode,
-      value: enabled.toString(),
+      value: (!enabled).toString(),
     );
   }
 
-  Future<bool> isPushPrivacyEnabled() async {
+  Future<bool> isPushNotificationsEnabled() async {
     final value = await _storage.read(key: StorageKeys.pushPrivacyMode);
-    return value == 'true';
+    return value != 'true';
   }
 
   // --- Screenshot-Hinweis ---

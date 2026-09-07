@@ -46,7 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// laesst sich ein Screenshot auf iOS ohnehin nicht; melden schon.
   bool _biometricAvailable = false;
   bool _vaultPasswordEnabled = false;
-  bool _pushPrivacyEnabled = false;
+  bool _pushBenachrichtigungen = true;
   bool _readReceiptsEnabled = false;
   DeviceIntegrityLevel? _deviceIntegrityLevel;
   HardwareSecurityLevel? _hardwareSecurityLevel;
@@ -74,7 +74,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final biometric = await storage.isBiometricEnabled();
     final available = await platform.isBiometricAvailable;
     final vaultPw = await storage.isVaultPasswordEnabled();
-    final pushPrivacy = await storage.isPushPrivacyEnabled();
+    final push = await storage.isPushNotificationsEnabled();
     final readReceipts = await storage.isReadReceiptsEnabled();
 
     if (mounted) {
@@ -82,7 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _biometricEnabled = biometric;
         _biometricAvailable = available;
         _vaultPasswordEnabled = vaultPw;
-        _pushPrivacyEnabled = pushPrivacy;
+        _pushBenachrichtigungen = push;
         _readReceiptsEnabled = readReceipts;
         _deviceIntegrityLevel = integrity.lastResult?.level;
         _hardwareSecurityLevel = hardware.level;
@@ -241,10 +241,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) setState(() => _biometricEnabled = value);
   }
 
-  Future<void> _togglePushPrivacy(bool value) async {
+  Future<void> _togglePushBenachrichtigungen(bool value) async {
     final messenger = context.read<MessengerProvider>();
-    await messenger.setPushPrivacyEnabled(value);
-    if (mounted) setState(() => _pushPrivacyEnabled = value);
+    await messenger.setPushNotificationsEnabled(value);
+    if (mounted) setState(() => _pushBenachrichtigungen = value);
   }
 
   Future<void> _toggleReadReceipts(bool value) async {
@@ -838,13 +838,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             _Divider(isDark: isDark),
             _SwitchTile(
-              icon: Icons.wifi_off_rounded,
-              title: l10n.pushPrivacy,
-              subtitle: _pushPrivacyEnabled
-                  ? l10n.pushPrivacyOn
-                  : l10n.pushPrivacyOff,
-              value: _pushPrivacyEnabled,
-              onChanged: _togglePushPrivacy,
+              // Die Glocke sagt, worum es geht, und der Strich sagt den
+              // Zustand. Vorher stand hier ein durchgestrichenes WLAN-Symbol
+              // — das gehoert zur Verbindung, nicht zu Benachrichtigungen.
+              icon: _pushBenachrichtigungen
+                  ? Icons.notifications_active_rounded
+                  : Icons.notifications_off_rounded,
+              title: l10n.pushNotifications,
+              subtitle: _pushBenachrichtigungen
+                  ? l10n.pushNotificationsOn
+                  : l10n.pushNotificationsOff,
+              value: _pushBenachrichtigungen,
+              onChanged: _togglePushBenachrichtigungen,
               isDark: isDark,
             ),
             _Divider(isDark: isDark),

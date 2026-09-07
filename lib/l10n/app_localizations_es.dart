@@ -609,13 +609,15 @@ class AppLocalizationsEs extends AppLocalizations {
       'No hay seguridad por hardware disponible';
 
   @override
-  String get pushPrivacy => 'Privacidad de las notificaciones';
+  String get pushNotifications => 'Notificaciones push';
 
   @override
-  String get pushPrivacyOn => 'Activada: los mensajes se recuperan por sondeo';
+  String get pushNotificationsOn =>
+      'Activadas: la pantalla de bloqueo avisa de que ha llegado algo';
 
   @override
-  String get pushPrivacyOff => 'Desactivada: notificaciones push activas';
+  String get pushNotificationsOff =>
+      'Desactivadas: los mensajes siguen llegando, los ves al abrir la aplicación';
 
   @override
   String get readReceipts => 'Confirmaciones de lectura';

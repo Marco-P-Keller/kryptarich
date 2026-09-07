@@ -607,14 +607,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String get hardwareSoftwareSubtitle => 'Keine Hardware-Sicherheit verfügbar';
 
   @override
-  String get pushPrivacy => 'Push-Privatsphäre';
+  String get pushNotifications => 'Push-Benachrichtigungen';
 
   @override
-  String get pushPrivacyOn =>
-      'Aktiv — Nachrichten werden per Polling abgerufen';
+  String get pushNotificationsOn =>
+      'An — der Sperrbildschirm meldet, dass etwas angekommen ist';
 
   @override
-  String get pushPrivacyOff => 'Deaktiviert — Push-Benachrichtigungen aktiv';
+  String get pushNotificationsOff =>
+      'Aus — Nachrichten kommen an, du erfährst es beim Öffnen der App';
 
   @override
   String get readReceipts => 'Lesebestätigungen';

@@ -602,13 +602,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hardwareSoftwareSubtitle => 'No hardware security available';
 
   @override
-  String get pushPrivacy => 'Push privacy';
+  String get pushNotifications => 'Push notifications';
 
   @override
-  String get pushPrivacyOn => 'On — messages are fetched by polling';
+  String get pushNotificationsOn =>
+      'On — the lock screen says that something has arrived';
 
   @override
-  String get pushPrivacyOff => 'Off — push notifications active';
+  String get pushNotificationsOff =>
+      'Off — messages still arrive, you see them when you open the app';
 
   @override
   String get readReceipts => 'Read receipts';

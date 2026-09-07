@@ -35,7 +35,6 @@ import '../../../security/session/session_handshake_service.dart';
 import '../../../security/transparency/consistency_checker.dart';
 import '../../../security/transparency/key_commitment.dart';
 import '../../../security/transparency/key_transparency_log.dart';
-import '../../../security/transport/privacy_polling.dart';
 import '../../../security/transport/sealed_sender.dart';
 import '../../../security/transport/timing_protection.dart';
 import '../../../security/verification/safety_number.dart';
@@ -180,9 +179,16 @@ class MessengerProvider extends ChangeNotifier {
   /// Our current delivery token for sealed sender routing.
   DeliveryToken? _deliveryToken;
   /// Privacy polling service — used when push privacy mode is enabled.
-  PrivacyPolling? _privacyPolling;
   /// Whether push privacy mode is active (no FCM, polling only).
-  bool _pushPrivacyEnabled = false;
+  /// Ob der Sperrbildschirm melden darf, dass etwas angekommen ist.
+  ///
+  /// Der Schalter tat bis zum 07.09.2026 zwei Dinge auf einmal: er loeschte
+  /// das FCM-Token **und** tauschte den Posteingangs-Listener gegen ein
+  /// Abfragen im Zehn-Sekunden-Takt. Er hiess darum „Push-Privatsphaere" und
+  /// war verkehrt herum — wer Benachrichtigungen suchte, musste ihn
+  /// einschalten, um sie loszuwerden. Daniels Ansage: nur an und aus, sonst
+  /// nichts.
+  bool _pushBenachrichtigungen = true;
   /// Pending jitter timers for control message delivery (cancelled on wipe/dispose).
   final List<Timer> _pendingJitterTimers = [];
 
@@ -270,7 +276,7 @@ class MessengerProvider extends ChangeNotifier {
   List<Contact> get contacts => List.unmodifiable(_contacts);
   String? get activeChatId => _activeChatId;
   bool get isInitialized => _isInitialized;
-  bool get isPushPrivacyEnabled => _pushPrivacyEnabled;
+  bool get isPushNotificationsEnabled => _pushBenachrichtigungen;
   bool get isReadReceiptsEnabled => _readReceiptsEnabled;
 
   List<Message> messagesForChat(String chatId) =>
@@ -474,7 +480,8 @@ class MessengerProvider extends ChangeNotifier {
       notifyListeners();
 
       // Check push privacy mode setting
-      _pushPrivacyEnabled = await _secureStorage.isPushPrivacyEnabled();
+      _pushBenachrichtigungen =
+          await _secureStorage.isPushNotificationsEnabled();
 
       // Die Lesebestaetigung ist weiter abschaltbar und standardmaessig aus.
       // Die Zustellbestaetigung nicht mehr: sie ist seit dem 04.09.2026 immer
@@ -502,20 +509,18 @@ class MessengerProvider extends ChangeNotifier {
         }
       } catch (_) {}
 
-      if (_pushPrivacyEnabled) {
-        // Push privacy mode: delete any existing FCM token from server
-        // and do NOT register for push notifications. Messages will be
-        // fetched via randomized polling instead.
-        try {
-          await _firestore.deleteFcmToken(userId!);
-        } catch (_) {}
-      } else {
-        // Normal mode: register for push notifications
+      if (_pushBenachrichtigungen) {
         try {
           await _notifications.initialize(userId!);
         } catch (e) {
           if (kDebugMode) debugPrint('Notification init failed: $e');
         }
+      } else {
+        // Ohne Token erreicht uns keine Meldung. Der Empfang selbst haengt
+        // nicht daran — er laeuft ueber den Posteingangs-Listener weiter.
+        try {
+          await _firestore.deleteFcmToken(userId!);
+        } catch (_) {}
       }
 
       // Sealed sender: publish a delivery token for anonymous routing.
@@ -3222,43 +3227,45 @@ class MessengerProvider extends ChangeNotifier {
 
   // --- Push Privacy Mode ---
 
-  /// Toggle push privacy mode.
+  /// Die Push-Benachrichtigungen an- oder abschalten.
   ///
-  /// When enabled:
-  /// - FCM token is deleted from the server
-  /// - Firestore real-time listeners are stopped
-  /// - Messages are fetched via randomized polling with jitter
-  /// - Push notification provider learns nothing about message timing
+  /// **Das ist alles, was dieser Schalter tut.** An heisst: das FCM-Token
+  /// liegt auf dem Server, und der Sperrbildschirm meldet, dass etwas
+  /// angekommen ist. Aus heisst: das Token wird geloescht, und niemand kann
+  /// uns mehr wecken.
   ///
-  /// When disabled:
-  /// - FCM is re-initialized for instant push delivery
-  /// - Firestore real-time listeners are restored
-  Future<void> setPushPrivacyEnabled(bool enabled) async {
-    if (_pushPrivacyEnabled == enabled) return;
-    _pushPrivacyEnabled = enabled;
-    await _secureStorage.setPushPrivacyEnabled(enabled);
+  /// **Der Empfang haengt nicht daran.** Nachrichten kommen weiter ueber den
+  /// Posteingangs-Listener; wer Push abschaltet, erfaehrt von ihnen erst beim
+  /// Oeffnen der App. Verloren geht keine — sie warten bis zu 24 Stunden auf
+  /// dem Server.
+  ///
+  /// Bis zum 07.09.2026 tat der Schalter mehr: er tauschte zusaetzlich den
+  /// Listener gegen ein Abfragen im Zehn-Sekunden-Takt. Der Gedanke war, dem
+  /// Server die offene Verbindung nicht zu zeigen. Nur lief die Abfrage gegen
+  /// **denselben** Firestore, nur oefter und mit mehr Anfragen — sie hat die
+  /// Anwesenheit nicht verborgen, sondern haeufiger gemeldet. Daniels Ansage
+  /// vom 07.09.: nur an und aus, keine weiteren Funktionen.
+  Future<void> setPushNotificationsEnabled(bool enabled) async {
+    if (_pushBenachrichtigungen == enabled) return;
+    _pushBenachrichtigungen = enabled;
+    await _secureStorage.setPushNotificationsEnabled(enabled);
 
-    if (userId == null) return;
-
-    // Stop current sync mechanism
-    _stopSync();
+    if (userId == null) {
+      notifyListeners();
+      return;
+    }
 
     if (enabled) {
-      // Delete FCM token — push provider can no longer reach us
-      try {
-        await _firestore.deleteFcmToken(userId!);
-      } catch (_) {}
-    } else {
-      // Re-register for push notifications
       try {
         await _notifications.initialize(userId!);
       } catch (e) {
         if (kDebugMode) debugPrint('Push re-init failed: $e');
       }
+    } else {
+      try {
+        await _firestore.deleteFcmToken(userId!);
+      } catch (_) {}
     }
-
-    // Restart sync with new mode — der Zeitgeber haengt daran.
-    _startSync();
     notifyListeners();
   }
 
@@ -3323,20 +3330,12 @@ class MessengerProvider extends ChangeNotifier {
     if (_isSyncing || userId == null) return;
     _isSyncing = true;
 
-    if (_pushPrivacyEnabled) {
-      // Privacy mode: use randomized polling instead of real-time listeners.
-      // No persistent connections — reduces metadata leaked to server.
-      // Control messages (ACKs, deletes, reads) travel through the same
-      // encrypted message channel — no separate ACK polling needed.
-      _privacyPolling = PrivacyPolling(
-        onMessages: _handlePolledMessages,
-      );
-      _privacyPolling!.start(userId!);
-    } else {
-      // Normal mode: Firestore real-time listeners (push-based).
-      // Single inbox listener handles both content and control messages.
-      _startInboxListenerWithReconnect();
-    }
+    // Ein Weg fuer den Empfang, und zwar der schnellste: ein Listener auf
+    // den Posteingang, der Inhalts- und Kontrollnachrichten gleichermassen
+    // traegt. Der zweite Weg — ein Abfragen im Zehn-Sekunden-Takt — hing am
+    // Push-Schalter und ist am 07.09.2026 weggefallen; er lief gegen
+    // denselben Server, nur oefter.
+    _startInboxListenerWithReconnect();
 
     // Die Uhr fuer die Loeschfristen gehoert zum laufenden Empfang und wird
     // deshalb hier gestartet, nicht nebenher.
@@ -3692,258 +3691,19 @@ class MessengerProvider extends ChangeNotifier {
 
   // _handleTyping removed — typing indicators disabled (privacy-by-design).
 
-  // --- Privacy Polling Handlers ---
-
-  /// Handle messages retrieved by privacy polling (one-shot fetch).
-  /// Converts raw document snapshots into the same flow as _handleInbox.
-  void _handlePolledMessages(
-      List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
-    // Wrap as a synthetic snapshot-like iteration for _handleInbox.
-    // Process each doc as an "added" change.
-    for (final doc in docs) {
-      _processPolledMessage(doc);
-    }
-  }
-
-  Future<void> _processPolledMessage(
-      QueryDocumentSnapshot<Map<String, dynamic>> doc) async {
-    final data = doc.data();
-    // See _handleInbox: drop a parked healed session if processing dies
-    // after the decrypt — `mid` is server-mutable.
-    String? pendingHealKey;
-    try {
-      final senderId = data['sid'] as String;
-      final messageId = data['mid'] as String;
-      final payloadMap = Map<String, dynamic>.from(data['p'] as Map);
-
-      final payloadSize = jsonEncode(payloadMap).length;
-      if (payloadSize > 65536) {
-        await _firestore.deleteRelayedMessage(userId!, doc.id);
-        return;
-      }
-
-      // Gleiche Regel wie im Live-Listener — die beiden Pfade sind schon
-      // einmal auseinandergelaufen, deshalb dieselbe Funktion.
-      final contact = contactForId(senderId);
-      if (_onlyAcceptsRequestFrom(contact)) {
-        await _receiveContactRequest(
-          senderId: senderId,
-          messageId: messageId,
-          payloadMap: payloadMap,
-          docId: doc.id,
-          existing: contact,
-        );
-        return;
-      }
-      // Siehe Live-Listener: die Einschraenkung auf non-null steckt in
-      // _onlyAcceptsRequestFrom, der Analyzer erkennt sie nicht.
-      if (contact == null) return;
-
-      // Centralized trust gate — fail-closed
-      final trustError = _validateReceivePermission(contact);
-      if (trustError != null) {
-        await _firestore.deleteRelayedMessage(userId!, doc.id);
-        return;
-      }
-
-      // Identity consistency check (TOFU baseline)
-      if (!_verifyIdentityConsistency(contact)) {
-        if (kDebugMode) debugPrint('Identity consistency violation: $senderId');
-        await _firestore.deleteRelayedMessage(userId!, doc.id);
-        return;
-      }
-
-      final chat = getOrCreateChat(contact);
-
-      // A3: mirror the _handleInbox guard — drop messages arriving while
-      // this chat is being deleted.
-      if (_deletingChats.contains(chat.id)) {
-        await _firestore.deleteRelayedMessage(userId!, doc.id);
-        return;
-      }
-
-      if (_processedMessageIds.contains(messageId)) {
-        await _firestore.deleteRelayedMessage(userId!, doc.id);
-        return;
-      }
-      if ((_messagesByChat[chat.id] ?? []).any((m) => m.id == messageId)) {
-        await _firestore.deleteRelayedMessage(userId!, doc.id);
-        return;
-      }
-
-      final version = payloadMap['v'] as int? ?? 1;
-      if (version < 2) {
-        await _firestore.deleteRelayedMessage(userId!, doc.id);
-        return;
-      }
-
-      pendingHealKey = _healKey(chat.id, messageId);
-      final plaintext = await _decryptWithRatchet(
-          chat.id, contact, payloadMap, messageId: messageId);
-
-      // Parse inner payload based on version
-      Map<String, dynamic> innerPayload;
-      String messageContent;
-      if (version >= 3) {
-        innerPayload = jsonDecode(plaintext) as Map<String, dynamic>;
-        messageContent = innerPayload['_t'] as String? ?? '';
-      } else {
-        innerPayload = payloadMap;
-        messageContent = plaintext;
-      }
-
-      // Control message detection (v3+ only — v2 payloadMap is server-visible)
-      if (version >= 3 && innerPayload.containsKey('_ctrl')) {
-        final ctrlAccepted =
-            await _processControlMessage(chat.id, contact, innerPayload);
-        if (ctrlAccepted) {
-          await _finalizeAcceptedMessage(chat.id, messageId, payloadMap);
-        } else {
-          _discardPendingHeal(chat.id, messageId);
-        }
-        await _firestore.deleteRelayedMessage(userId!, doc.id);
-        return;
-      }
-
-      // Sealed sender validation
-      final sealedSenderId = innerPayload['_sid'] as String?;
-      if (sealedSenderId == null) {
-        _discardPendingHeal(chat.id, messageId);
-        await _firestore.deleteRelayedMessage(userId!, doc.id);
-        return;
-      }
-      if (sealedSenderId != senderId) {
-        _discardPendingHeal(chat.id, messageId);
-        await _firestore.deleteRelayedMessage(userId!, doc.id);
-        return;
-      }
-
-      // Kontaktanfrage von jemandem, den ich selbst schon angefragt habe:
-      // beide sind einverstanden. Sie traegt keinen Inhalt, also entsteht
-      // auch keine Blase.
-      if (innerPayload['_rq'] == 1) {
-        await _applyMutualRequest(contact);
-        await _finalizeAcceptedMessage(chat.id, messageId, payloadMap);
-        _processedMessageIds.add(messageId);
-        await _firestore.deleteRelayedMessage(userId!, doc.id);
-        return;
-      }
-
-      // C4+C5: replay/rollback enforcement — same contract as _handleInbox.
-      if (!await _enforceReplayAndRollback(chat.id, innerPayload, version,
-          messageId: messageId)) {
-        _discardPendingHeal(chat.id, messageId);
-        await _firestore.deleteRelayedMessage(userId!, doc.id);
-        return;
-      }
-
-      // Message accepted — commit pending healed session + pin its ek.
-      // False = concurrent duplicate of a committed re-handshake → reject.
-      if (!await _finalizeAcceptedMessage(chat.id, messageId, payloadMap)) {
-        await _firestore.deleteRelayedMessage(userId!, doc.id);
-        return;
-      }
-
-      // Process Key Transparency gossip from the encrypted payload
-      await _processTransparencyGossip(senderId, innerPayload);
-
-      if (await _beantworteErneuteAnfrage(chat.id, senderId, innerPayload)) {
-        await _firestore.deleteRelayedMessage(userId!, doc.id);
-        return;
-      }
-
-      // Extract metadata from inner payload (v3 keys with v2 compat)
-      // A2: see _handleInbox — sanitize attacker-controlled self-destruct.
-      var selfDestructMs = innerPayload['_sd'] as int? ??
-          (innerPayload['sd'] as int?);
-      if (selfDestructMs != null) {
-          selfDestructMs = SelfDestructPolicy.clampFremdeFrist(selfDestructMs)?.inMilliseconds;
-      }
-      final burnAfterRead = innerPayload['_bar'] == true ||
-          innerPayload['_bar'] == 'true' ||
-          innerPayload['bar'] == true ||
-          innerPayload['bar'] == 'true';
-      final isPasswordProtected = innerPayload['_pw'] == true ||
-          innerPayload['_pw'] == 'true' ||
-          innerPayload['pw'] == true ||
-          innerPayload['pw'] == 'true';
-
-      // Der Moment des Abholens ist der Zustellzeitpunkt, und der ist der
-      // Start jeder Loeschfrist — auf beiden Geraeten. Der Absender erfaehrt
-      // ihn aus der Zustellbestaetigung, siehe SelfDestructPolicy.deadline.
-      final zugestellt = DateTime.now();
-      // Siehe die erste Empfangsstelle: eine Frage, eine Antwort, und die
-      // bleibt an der Nachricht.
-      final gelesen = UnreadPolicy.beiZustellungGelesen(
-        senderId: senderId,
-        eigeneId: userId,
-        chatId: chat.id,
-        offenerChat: _activeChatId,
-        imVordergrund: _imVordergrund,
-      );
-      final message = Message(
-        id: messageId,
-        chatId: chat.id,
-        senderId: senderId,
-        recipientId: userId!,
-        encryptedContent: '',
-        decryptedContent: messageContent,
-        timestamp: zugestellt,
-        deliveredAt: zugestellt,
-        readAt: gelesen ? zugestellt : null,
-        status: gelesen ? MessageStatus.read : MessageStatus.delivered,
-        selfDestructFromChat: innerPayload['_sdc'] == true,
-        selfDestructDuration:
-            selfDestructMs != null ? Duration(milliseconds: selfDestructMs) : null,
-        burnAfterRead: burnAfterRead,
-        einmalig: EinmaligPolicy.ausPayload(innerPayload),
-        isPasswordProtected: isPasswordProtected,
-        passwordUnlocked: !isPasswordProtected,
-      );
-
-      _addMessageToChat(chat.id, message);
-      _touchChat(chat.id, message.timestamp);
-      _standNachrechnen(chat.id);
-
-      _sendeZustellbestaetigung(
-          chatId: chat.id, contact: contact, messageId: messageId);
-      if (gelesen) {
-        _sendeLesebestaetigung(
-            chatId: chat.id, senderId: senderId, messageId: messageId);
-      }
-
-      // Erst die Oberflaeche, dann der Server — siehe _handleInbox.
-      notifyListeners();
-      await _firestore.deleteRelayedMessage(userId!, doc.id);
-    } on SessionError catch (e) {
-      if (pendingHealKey != null) _pendingHealCommits.remove(pendingHealKey);
-      switch (e.policy) {
-        case SessionErrorPolicy.destroySession:
-          final contact = contactForId(data['sid'] as String);
-          if (contact != null) {
-            for (final chat in _chats) {
-              if (chat.recipientId == contact.id) {
-                _ratchetStates.remove(chat.id);
-                await _localStore.deleteRatchetState(chat.id);
-              }
-            }
-          }
-        case SessionErrorPolicy.blockUntilVerified:
-        case SessionErrorPolicy.rejectMessage:
-        case SessionErrorPolicy.retryTransient:
-          break;
-      }
-      try { await _firestore.deleteRelayedMessage(userId!, doc.id); } catch (_) {}
-    } on HandshakeException catch (e) {
-      if (pendingHealKey != null) _pendingHealCommits.remove(pendingHealKey);
-      if (kDebugMode) debugPrint('Handshake failed on polled receive: $e');
-      try { await _firestore.deleteRelayedMessage(userId!, doc.id); } catch (_) {}
-    } catch (e) {
-      if (pendingHealKey != null) _pendingHealCommits.remove(pendingHealKey);
-      if (kDebugMode) debugPrint('Polled message processing failed: $e');
-      try { await _firestore.deleteRelayedMessage(userId!, doc.id); } catch (_) {}
-    }
-  }
+  // Der zweite Empfangsweg ist am 07.09.2026 weggefallen.
+  //
+  // `_handlePolledMessages` und `_processPolledMessage` waren eine zweite,
+  // vollstaendige Fassung von `_handleInbox` — dieselben Sicherheitspruefungen
+  // ein zweites Mal geschrieben, mit Kommentaren wie „mirror the _handleInbox
+  // guard", die genau das eingestehen. Zwei Empfangswege laufen frueher oder
+  // spaeter auseinander, und dann ist einer davon der schwaechere.
+  //
+  // Erreichbar waren sie nur ueber den Push-Schalter, der zusaetzlich zum
+  // FCM-Token den Posteingangs-Listener gegen ein Abfragen im
+  // Zehn-Sekunden-Takt tauschte. Der Schalter schaltet seit Daniels Ansage
+  // vom 07.09. nur noch die Benachrichtigungen; der Empfang laeuft immer
+  // ueber den Listener.
 
   // --- Self-Destruct ---
 
@@ -4887,8 +4647,6 @@ class MessengerProvider extends ChangeNotifier {
   void _stopSync({bool behalteWartendeMeldungen = false}) {
     _inboxSub?.cancel();
     _inboxReconnectTimer?.cancel(); // B2: kill any pending reconnect
-    _privacyPolling?.stop();
-    _privacyPolling = null;
     _selfDestructTimer?.cancel();
     if (!behalteWartendeMeldungen) {
       for (final timer in _pendingJitterTimers) {

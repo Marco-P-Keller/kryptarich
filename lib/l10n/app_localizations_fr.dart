@@ -608,14 +608,15 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucune sécurité matérielle disponible';
 
   @override
-  String get pushPrivacy => 'Confidentialité des notifications';
+  String get pushNotifications => 'Notifications push';
 
   @override
-  String get pushPrivacyOn =>
-      'Activée – les messages sont récupérés par interrogation';
+  String get pushNotificationsOn =>
+      'Activées – l’écran de verrouillage signale qu’un message est arrivé';
 
   @override
-  String get pushPrivacyOff => 'Désactivée – notifications push actives';
+  String get pushNotificationsOff =>
+      'Désactivées – les messages arrivent toujours, vous les voyez en ouvrant l’application';
 
   @override
   String get readReceipts => 'Accusés de lecture';

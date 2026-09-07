@@ -48,6 +48,14 @@ abstract final class StorageKeys {
   static const String userId              = 'krypta_cfg_userid';
 
   // ── Privacy mode (push vs polling) ──────────────────────────────────────
+  /// Ob die Push-Benachrichtigungen an sind.
+  ///
+  /// **Umgekehrt gespeichert**, und der Name sagt warum: das Feld hiess einmal
+  /// „Push-Privatsphaere", und `'true'` hiess dort „keine Benachrichtigungen".
+  /// Es liegt so auf jedem Geraet, das schon einmal lief. Ein neuer Schluessel
+  /// haette bedeutet, dass jeder, der Push abgeschaltet hatte, sie nach dem
+  /// Update wieder bekommt. Gedreht wird deshalb an genau einer Stelle, in
+  /// SecureStorageService.isPushNotificationsEnabled.
   static const String pushPrivacyMode = 'krypta_cfg_push_privacy';
 
   /// Ob das einmalige Aufraeumen der Altlasten gelaufen ist.
