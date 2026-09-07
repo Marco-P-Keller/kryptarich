@@ -58,6 +58,24 @@ abstract final class SelfDestructPolicy {
     // verschwindet, wenn man ihn braucht, waere sinnlos.
     if (m.isSystemEvent) return null;
 
+    // Eine einmalige Nachricht hat **gar keine Uhr**. Sie geht mit dem
+    // Oeffnen, und nur damit — Daniels Entscheidung vom 07.09.2026: der
+    // Loeschtimer gilt fuer gewoehnliche und fuer passwortgeschuetzte
+    // Nachrichten, nicht fuer diese.
+    //
+    // Vorher erbte sie die Chat-Frist. `chat_screen` sendet jede Nachricht
+    // mit `selfDestructFromChat: true`, und eine einmalige traegt bewusst
+    // keine eigene Frist — also griff unten die des Chats. Bei fuenf Minuten
+    // war sie nach fuenf Minuten fort, ungeoeffnet, auf beiden Geraeten. Wer
+    // sie nicht sofort oeffnete, hat sie nie gesehen.
+    //
+    // Das gilt auch fuer eine mitgereiste eigene Frist: ein aelterer Absender
+    // koennte beides schicken, und „nur einmal zu oeffnen" ist die staerkere
+    // Zusage. Die Gegenstuecke stehen in [nachLesenFaellig] (auch die Regel
+    // „Direkt nach dem Lesen" laesst sie stehen) und in [_vergaenglich] (die
+    // Ablaufmeldung des Empfaengers raeumt sie beim Absender trotzdem weg).
+    if (m.einmalig) return null;
+
     // Welche Frist gilt.
     //
     // Kam sie vom Chat, gilt die **aktuelle** Einstellung des Chats: sie

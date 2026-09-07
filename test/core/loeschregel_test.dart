@@ -261,4 +261,116 @@ void main() {
       expect(SelfDestructPolicy.announceBurn(fremd, 'ich'), isFalse);
     });
   });
+
+  // ─── Daniels Regelwerk vom 07.09.2026 ────────────────────────────────
+  //
+  // Seine Worte: „nachrichten zum 1 mal ansehen sollten vom löschtimer nicht
+  // betroffen sein, sie sollten da bleiben und dann nach dem schliessen der
+  // nachricht verschwinden. die passwortgeschützten nachrichten sollten die
+  // gleichen regeln gelten wie für normale nachrichten. wenn man die
+  // allgemeine einstellung im chat hat nach dem lesen löschen, sollten
+  // nachrichten im chat bleiben bis sie gelesen wurden und wenn der empfänger
+  // den chat verlässt oder die app verlässt direkt entfernt werden. ebenfalls
+  // überall ausser bei den nachrichten zum 1 mal öffnen. der allgemeine
+  // selbstlösch timer sollte aber sonst ab zustellung gelten."
+  //
+  // Vier Aussagen, hier zusammen an einer Stelle. Sie standen bisher in drei
+  // Dateien verteilt, und genau dazwischen ist die einmalige Nachricht
+  // durchgefallen: sie erbte die Chat-Frist und wurde von „Direkt nach dem
+  // Lesen" ungeoeffnet weggeraeumt.
+  group('Daniels Regelwerk vom 07.09.2026', () {
+    Message m({
+      required String von,
+      bool einmalig = false,
+      bool passwort = false,
+      DateTime? gelesenAm,
+      Duration? eigeneFrist,
+    }) =>
+        Message(
+          id: 'm1',
+          chatId: 'c1',
+          senderId: von,
+          recipientId: von == 'ich' ? 'marco' : 'ich',
+          encryptedContent: 'x',
+          timestamp: DateTime(2026, 9, 7, 12),
+          deliveredAt: DateTime(2026, 9, 7, 12),
+          readAt: gelesenAm,
+          selfDestructDuration: eigeneFrist,
+          selfDestructFromChat: eigeneFrist == null,
+          einmalig: einmalig,
+          isPasswordProtected: passwort,
+          passwordUnlocked: !passwort,
+        );
+
+    final zustellung = DateTime(2026, 9, 7, 12);
+    const chatFrist = Duration(minutes: 5);
+
+    test('1. die einmalige Nachricht kennt keinen Loeschtimer', () {
+      expect(
+        SelfDestructPolicy.deadline(m(von: 'marco', einmalig: true),
+            chatTimer: chatFrist),
+        isNull,
+      );
+    });
+
+    test('1. und auch „Direkt nach dem Lesen" laesst sie stehen', () {
+      // Ihr Lesevermerk steht schon bei der Zustellung, wenn der Chat offen
+      // ist. Gelesen ist dann die Blase, nicht der Inhalt.
+      expect(
+        SelfDestructPolicy.nachLesenFaellig(
+            m(von: 'marco', einmalig: true, gelesenAm: zustellung),
+            regelNachLesen: true),
+        isFalse,
+      );
+    });
+
+    test('2. die passwortgeschuetzte folgt derselben Regel wie eine normale',
+        () {
+      // Keine Sonderbehandlung, ausdruecklich. Die Folge, offen gesagt: steht
+      // der Chat auf „Direkt nach dem Lesen", kann sie beim Verlassen des
+      // Chats verschwinden, bevor sie jemand entsperrt hat — genau wie eine
+      // gewoehnliche, die niemand gelesen hat. Das ist die Regel, nicht ein
+      // Versehen.
+      final gesperrt = m(von: 'marco', passwort: true, gelesenAm: zustellung);
+      final gewoehnlich = m(von: 'marco', gelesenAm: zustellung);
+
+      expect(
+        SelfDestructPolicy.deadline(gesperrt, chatTimer: chatFrist),
+        SelfDestructPolicy.deadline(gewoehnlich, chatTimer: chatFrist),
+      );
+      expect(
+        SelfDestructPolicy.nachLesenFaellig(gesperrt, regelNachLesen: true),
+        SelfDestructPolicy.nachLesenFaellig(gewoehnlich, regelNachLesen: true),
+      );
+    });
+
+    test('3. „nach dem Lesen loeschen": ungelesen bleibt, gelesen geht', () {
+      expect(
+        SelfDestructPolicy.nachLesenFaellig(m(von: 'marco'),
+            regelNachLesen: true),
+        isFalse,
+        reason: 'ungelesen bleibt sie liegen, egal wie lange',
+      );
+      expect(
+        SelfDestructPolicy.nachLesenFaellig(
+            m(von: 'marco', gelesenAm: zustellung),
+            regelNachLesen: true),
+        isTrue,
+        reason: 'geraeumt wird beim Verlassen von Chat oder App',
+      );
+    });
+
+    test('4. der allgemeine Timer rechnet ab der Zustellung, nicht ab dem Lesen',
+        () {
+      // Ungelesen und gelesen ergeben denselben Ablaufzeitpunkt.
+      final ablauf = zustellung.add(chatFrist);
+      expect(SelfDestructPolicy.deadline(m(von: 'marco'), chatTimer: chatFrist),
+          ablauf);
+      expect(
+        SelfDestructPolicy.deadline(m(von: 'marco', gelesenAm: zustellung),
+            chatTimer: chatFrist),
+        ablauf,
+      );
+    });
+  });
 }

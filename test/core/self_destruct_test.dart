@@ -54,6 +54,47 @@ void main() {
       );
     });
 
+    test('eine einmalige Nachricht hat gar keine Uhr', () {
+      // Daniels Entscheidung vom 07.09.2026: „nachrichten zum 1mal offnen
+      // sollten nach dem offnen verschwinden und sind somit vom selbstlösch
+      // timer nicht beachtet. der selbstlösch timer giltet nur für
+      // passwortgeschützte nachrichten und normale nachrichten."
+      //
+      // Vorher erbte sie die Chat-Frist: `chat_screen` sendet jede Nachricht
+      // mit `selfDestructFromChat: true`, und eine einmalige traegt bewusst
+      // keine eigene Frist — also griff die des Chats. Bei fuenf Minuten war
+      // sie nach fuenf Minuten fort, ungeoeffnet, auf beiden Geraeten. Sie
+      // geht mit dem Oeffnen, und nur damit.
+      expect(
+        SelfDestructPolicy.deadline(
+          nachricht(von: 'marco', einmalig: true),
+          chatTimer: const Duration(minutes: 5),
+        ),
+        isNull,
+      );
+      expect(
+        SelfDestructPolicy.expired(
+          nachricht(von: 'marco', einmalig: true),
+          DateTime(2026, 8, 31, 23),
+          chatTimer: const Duration(minutes: 5),
+        ),
+        isFalse,
+      );
+    });
+
+    test('ihre eigene mitgereiste Frist zaehlt auch nicht', () {
+      // Ein aelterer Absender koennte beides mitschicken. Die Zusage
+      // „nur einmal zu oeffnen" ist die staerkere; eine Uhr daneben wuerde
+      // sie nur frueher und unbemerkt einloesen.
+      expect(
+        SelfDestructPolicy.deadline(
+          nachricht(
+              von: 'marco', einmalig: true, timer: const Duration(seconds: 30)),
+        ),
+        isNull,
+      );
+    });
+
     test('vor Ablauf bleibt sie stehen', () {
       final m = nachricht(timer: const Duration(seconds: 30));
       expect(
